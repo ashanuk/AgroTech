@@ -15,7 +15,7 @@ def save_model_artifacts(model, scaler):
     joblib.dump(scaler, SCALER_PATH)
 
 
-from langchain.tools import DuckDuckGoSearchRun
+from langchain_community.tools import DuckDuckGoSearchRun
 
 def add(a, b):
     """
