@@ -40,7 +40,9 @@ export default function RootLayout({
           <SidebarProvider>
             <AppSidebar />
             <SidebarTrigger />
-            {children}
+            <main className="p-2 w-full">
+              {children}
+            </main>
         
           </SidebarProvider>
         </ThemeProvider>
