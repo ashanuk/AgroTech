@@ -3,12 +3,25 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-export function LoginForm({
+import { signIn } from "@/lib/auth"
+import { executeAction } from "@/lib/executeAction"
+
+export async function LoginForm({
   className,
   ...props
 }: React.ComponentProps<"form">) {
+  
   return (
-    <form className={cn("flex flex-col gap-6", className)} {...props}>
+    <form className={cn("flex flex-col gap-6", className)} {...props} action={
+      async (formData: FormData) => {
+        "use server";
+        await executeAction({
+          actionFn: async () => {
+            await signIn("credentials", { ...Object.fromEntries(formData), redirectTo: "/" });
+          }
+        })
+      }
+    }>
       <div className="flex flex-col items-center gap-2 text-center">
         <h1 className="text-2xl font-bold">Login to your account</h1>
         <p className="text-muted-foreground text-sm text-balance">
@@ -18,7 +31,7 @@ export function LoginForm({
       <div className="grid gap-6">
         <div className="grid gap-3">
           <Label htmlFor="email">Email</Label>
-          <Input id="email" type="email" placeholder="m@example.com" required />
+          <Input id="email" name="email" type="email" placeholder="m@example.com" required />
         </div>
         <div className="grid gap-3">
           <div className="flex items-center">
@@ -30,7 +43,7 @@ export function LoginForm({
               Forgot your password?
             </a>
           </div>
-          <Input id="password" type="password" required />
+          <Input id="password" name="password" type="password" required />
         </div>
         <Button type="submit" className="w-full">
           Login

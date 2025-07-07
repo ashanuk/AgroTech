@@ -1,4 +1,5 @@
-import { Calendar, Home, Inbox, Search, Settings } from "lucide-react"
+import { Calendar, Home, Inbox, Search, Settings, Sprout } from "lucide-react"
+import { NavUser } from "@/components/nav-user"
 
 import {
   Sidebar,
@@ -14,6 +15,7 @@ import {
 } from "@/components/ui/sidebar"
 
 import { ModeToggle } from "./mode-toggle"
+import { auth, signOut } from "@/lib/auth"
 
 const smartCropManagementItems = [
   {
@@ -54,7 +56,7 @@ const resourceOptimizationItems = [
 const marketIntelligentItems = [
   {
     title: "Price Analytics",
-    url: "#",
+    url: "/market/price-prediction",
     icon: Home,
   },
   {
@@ -87,7 +89,27 @@ const communityItems = [
   },
 ]
 
-export function AppSidebar() {
+export async function AppSidebar() {
+  
+  const session = await auth();
+  let datauser = {
+    name: "default name",
+    email: "default@gmail.com",
+    avatar: "",
+  };
+  if (session) {
+    datauser = {
+      name: session.user?.name || "",
+      email: session.user?.email || "",
+      avatar: session.user?.image || "",
+    };
+  }
+
+  const handleSignout = async () => {
+    "use server";
+    await signOut();
+  }
+
   return (
     <Sidebar>
       
@@ -95,8 +117,12 @@ export function AppSidebar() {
         <SidebarHeader>
             <SidebarMenu>
                 <SidebarMenuItem>
-                    
-                    <span className="text-xl font-bold">AgroTech</span>
+                    <div className="flex items-center gap-2">
+                        <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                        <Sprout />
+                        </div>
+                        <span className="text-lg font-semibold">AgroTech</span>
+                    </div>
                 </SidebarMenuItem>
             </SidebarMenu>
         </SidebarHeader>
@@ -177,20 +203,10 @@ export function AppSidebar() {
       </SidebarContent>
 
       <SidebarFooter>
-          <SidebarMenu>
-            <SidebarMenuItem>
-                <span className="flex justify-between items-center gap-2">
-                    <p>N. Wimaladarmasooriya</p>
-                    <ModeToggle />
-                </span>
-            </SidebarMenuItem>
-            <SidebarMenuItem>
-              <SidebarMenuButton asChild>
-                    
-                </SidebarMenuButton>
-              
-            </SidebarMenuItem>
-          </SidebarMenu>
+        <div className="flex items-center justify-between">
+              <NavUser user={datauser} handlesignout={handleSignout}/>
+              <ModeToggle />
+        </div>
         </SidebarFooter>
     </Sidebar>
   )
