@@ -1,6 +1,19 @@
 
 GET http://localhost:8000/predict
-### ✅ Initial Training
+###
 POST http://localhost:8000/train
 Content-Type: application/json
+###
+POST  http://127.0.0.1:8000/chat 
+Content-Type: application/json
 
+{
+  "message": "i want to know weatherr in colombo  2025/07/09"
+}
+
+HTTP/1.1 200  - OK
+date: Mon, 07 Jul 2025 11:54:21 GMT
+server: uvicorn
+content-length: 458
+content-type: application/json
+connection: close
