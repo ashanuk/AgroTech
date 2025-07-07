@@ -6,7 +6,7 @@ from app.utils import add, multiply, search_ddgo, get_weather, predict_weather_f
 
 model = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash",
-    google_api_key="AIzaSyBRYRYAjFStLg_xFoNFTaSsaphNuNkmd_I",
+    google_api_key="AIzaSyCS-sWncoWhnh9cI0HdRQc56zQ35E0kgUM",
     temperature=0.7
 )
 
