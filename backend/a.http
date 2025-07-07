@@ -1,6 +1,19 @@
 
 GET http://localhost:8000/predict
 ###
+
+POST http://localhost:8000/crop-recommendation/suitable-crops
+Content-Type: application/json
+
+{"location": "balangoda, Sri Lanka", "use_defaults": true}
+
+HTTP/1.1 200  - OK
+date: Mon, 07 Jul 2025 16:56:32 GMT
+server: uvicorn
+content-length: 57
+content-type: application/json
+connection: close
+
 POST http://localhost:8000/train
 Content-Type: application/json
 ###
@@ -11,9 +24,39 @@ Content-Type: application/json
   "message": "i want to know weatherr in colombo  2025/07/09"
 }
 
-HTTP/1.1 200  - OK
-date: Mon, 07 Jul 2025 11:54:21 GMT
-server: uvicorn
-content-length: 458
-content-type: application/json
-connection: close
+
+
+### Test Manual Crop Recommendation (Rice-favorable conditions)
+POST http://localhost:8000/crop-recommendation/suitable-crops/manual
+Content-Type: application/json
+
+{
+  "nitrogen": 90,
+  "temperature": 23.75,
+  "humidity": 82.32,
+  "ph": 6.5,
+  "rainfall": 200.98
+}
+
+
+### Test Different Location (Mumbai, India)
+POST http://localhost:8000/crop-recommendation/suitable-crops
+Content-Type: application/json
+
+{"location": "Mumbai, India", "use_defaults": true}
+
+
+### Test Dry Climate Conditions
+POST http://localhost:8000/crop-recommendation/suitable-crops/manual
+Content-Type: application/json
+
+{
+  "nitrogen": 40,
+  "temperature": 35,
+  "humidity": 30,
+  "ph": 7.5,
+  "rainfall": 20
+}
+
+
+
