@@ -7,3 +7,10 @@ matplotlib==3.8.4
 tensorflow==2.16.1
 joblib==1.4.2
 python-multipart==0.0.9  # For file uploads in FastAPI
+langgraph-supervisor
+langchain_google_genai
+langchain_core==0.2.0
+duckduckgo-search==0.6.0
+langchain 
+langchain-community
+langgraph
