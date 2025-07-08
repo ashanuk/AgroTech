@@ -29,8 +29,8 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
 
-    const session = await auth();
-    if (!session) { redirect("/login"); }
+  const session = await auth();
+  if (!session) { redirect("/login"); }
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -49,7 +49,7 @@ export default async function RootLayout({
             <main className="p-2 w-full">
               {children}
             </main>
-        
+
           </SidebarProvider>
         </ThemeProvider>
       </body>

@@ -31,7 +31,7 @@ export function SignupForm({
           <Input id="password" type="password" required />
         </div>
         <Button type="submit" className="w-full cursor-pointer">
-          Signup
+          Create Account
         </Button>
         
       </div>

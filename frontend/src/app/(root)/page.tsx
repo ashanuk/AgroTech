@@ -4,10 +4,10 @@ import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export default async function Home() {
-  
+
   const session = await auth();
   if (!session) { redirect("/login"); }
-  
+
   return (
     <div className="flex-col">
       {/* <Image
@@ -18,7 +18,7 @@ export default async function Home() {
         className="rounded-full"
       /> */}
       <h1 className="text-2xl font-bold mt-4">Dashboard</h1>
-        <ChartLineInteractive />
+      <ChartLineInteractive />
     </div>
   );
 }
