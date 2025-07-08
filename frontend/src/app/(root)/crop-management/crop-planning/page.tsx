@@ -361,7 +361,7 @@ export default function CropPlanningPage() {
 
       {/* Detailed Crop Information Drawer */}
       <Sheet open={isDrawerOpen} onOpenChange={setIsDrawerOpen}>
-        <SheetContent className="w-[400px] sm:w-[540px] p-4">
+        <SheetContent className="w-[400px] sm:w-[540px] p-4 sm:max-w-[520px] rounded-l-sm">
           {selectedCrop && (
             <>
               <SheetHeader className="space-y-3">
