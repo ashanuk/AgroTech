@@ -20,7 +20,7 @@ import { auth, signOut } from "@/lib/auth"
 const smartCropManagementItems = [
   {
     title: "Crop Planning Module",
-    url: "#",
+    url: "/crop-management/crop-planning",
     icon: Home,
   },
   {
