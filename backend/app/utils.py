@@ -2,6 +2,8 @@ import numpy as np
 import joblib
 from app.config import MODEL_PATH, SCALER_PATH
 import requests
+from app.crop_recommendation import CropRecommendationSystem
+crop_system = CropRecommendationSystem()
 
 def create_sequences(values, lookback=15):
     X, y = [], []
@@ -285,6 +287,41 @@ def get_day_summary_paid_api(lat, lon, date_str):
             return "Error: Unauthorized. This API requires a paid OpenWeatherMap subscription."
         return f"Error {response.status_code}: {response.text}"
 
+
+
+def get_suitable_crops_only(location: str, use_defaults: bool = True):
+    """
+    Get suitable crops with probabilities for a location (returns crops with >70% probability)
+    
+    Input:
+        - location (str): City/area name (e.g., "Mumbai, India")
+        - use_defaults (bool): Whether to use default parameters or not
+    
+    Output:
+        - List of crops with probabilities [{"crop": "rice", "probability": 0.85}, ...] or []
+
+    Raises:
+        - ValueError: If crop recommendation fails or an unexpected error occurs
+    """
+    try:
+        result = crop_system.get_crop_recommendations(
+            location=location,
+            use_defaults=use_defaults
+        )
+
+        if not result['success']:
+            raise ValueError(f"Crop recommendation failed: {result['error']}")
+
+        suitable_crops = [
+            {'crop': rec['crop']}
+            for rec in result['recommendations']
+            if rec.get('suitability') == 'suitable'
+        ]
+
+        return suitable_crops
+
+    except Exception as e:
+        raise ValueError(f"Error getting suitable crops: {str(e)}")
 
 
 
