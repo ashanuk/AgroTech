@@ -25,10 +25,13 @@ Content-Type: application/json
 }
 
 HTTP/1.1 200  - OK
-date: Mon, 07 Jul 2025 18:36:03 GMT
+date: Fri, 11 Jul 2025 06:27:59 GMT
 server: uvicorn
-content-length: 167
+content-length: 204
 content-type: application/json
+access-control-allow-origin: *
+access-control-allow-methods: GET, POST, PUT, DELETE, OPTIONS
+access-control-allow-headers: *
 connection: close
 ###
 POST http://localhost:8000/crop-recommendation/suitable-crops/manual

@@ -18,6 +18,7 @@ def save_model_artifacts(model, scaler):
 
 
 from langchain_community.tools import DuckDuckGoSearchRun
+from tavily import TavilyClient
 
 def add(a, b):
     """
@@ -47,16 +48,22 @@ def multiply(a, b):
 
 def search_ddgo(query):
     """
-    Perform a web search using DuckDuckGo.
+    Perform a web search using Tavily AI.
 
     Args:
         query (str): The search query string.
 
     Returns:
-        str: Top search result from DuckDuckGo.
+        str: Search results from Tavily AI.
     """
-    search = DuckDuckGoSearchRun()
-    return search.invoke(query)
+    try:
+        tavily_client = TavilyClient(api_key="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")  # Replace with your actual API key
+        response = tavily_client.search(query)
+        return str(response)
+    except Exception as e:
+        # Fallback to DuckDuckGo if Tavily fails
+        search = DuckDuckGoSearchRun()
+        return search.invoke(query)
 
 # Example usage
 # print(search_ddgo("what is quantum computing"))
