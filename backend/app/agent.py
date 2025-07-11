@@ -22,7 +22,7 @@ research_agent= create_react_agent(
     model = model,
     tools = [search_ddgo],
     name='search_expert',
-    prompt= 'you are a world class reasearcher with access to web search.Do not do any math'
+    prompt= 'you are a world class researcher with access to web search. Do not do any math'
 )
 
 weather_agent= create_react_agent(
@@ -59,11 +59,11 @@ work_flow = create_supervisor(
     model=model,
     prompt=(
         'You are a team supervisor managing a reasearch expert and a math eapert.'
-        'For current events, use research_agent. '
+        'if crop expert or weather expert do not know the answer use search_expert. '
         'For math problems , use math_agent.'
         'For weather problems, use weather_agent.'
         'For weather problems if future in 5 days, use weather_future_tool.'
-        'For crop recommendations, use crop_expert.'
+        'For crop recommendations, use crop_expert. if crop_expert does not know the answer, use search_expert.'
     )
 )
 
