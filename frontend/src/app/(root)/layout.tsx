@@ -5,6 +5,8 @@ import "../globals.css";
 import { ThemeProvider } from "@/components/theme-provider";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import { Toaster } from "@/components/ui/sonner";
+import Providers from "@/components/providers";
 import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -30,7 +32,9 @@ export default async function RootLayout({
 }>) {
 
   const session = await auth();
-  if (!session) { redirect("/login"); }
+  if (!session) {
+    redirect('/login')
+  }
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -44,9 +48,12 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <SidebarProvider>
+            <Providers>
             <AppSidebar />
+            </Providers>
             <SidebarTrigger />
             <main className="p-2 w-full">
+              <Toaster position="top-right"/>
               {children}
             </main>
 

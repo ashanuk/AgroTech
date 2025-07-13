@@ -1,3 +1,25 @@
+import mongoose from 'mongoose';
+
+const MONGODB_URI = process.env.MONGODB_URI || '';
+
+if (!MONGODB_URI) {
+  throw new Error('Please define the MONGODB_URI environment variable inside .env.local');
+};
+
+export async function connectToDatabase() {
+  if (mongoose.connection.readyState === 1) {
+    return mongoose;
+  };
+
+  const opts = {
+    bufferCommands: false,
+  };
+
+  await mongoose.connect(MONGODB_URI!, opts);
+  return mongoose;
+}
+
+
 // This approach is taken from https://github.com/vercel/next.js/tree/canary/examples/with-mongodb
 import { MongoClient, ServerApiVersion } from "mongodb"
  
