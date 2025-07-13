@@ -1,3 +1,5 @@
+"use client"
+
 import { Calendar, Home, Inbox, Search, Settings, Sprout } from "lucide-react"
 import { NavUser } from "@/components/nav-user"
 
@@ -13,9 +15,12 @@ import {
   SidebarHeader,
   SidebarFooter
 } from "@/components/ui/sidebar"
+import { useRouter } from "next/navigation"
+import { signOut } from "next-auth/react"
+import { useSession } from "next-auth/react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 import { ModeToggle } from "./mode-toggle"
-import { auth, signOut } from "@/lib/auth"
 
 const smartCropManagementItems = [
   {
@@ -89,45 +94,80 @@ const communityItems = [
   },
 ]
 
-export async function AppSidebar() {
-  
-  const session = await auth();
+export function AppSidebar() {
+
+  const router = useRouter();
+  const { data: session, status } = useSession();
+  console.log("Session Data:", session);
+
+  // const session = await auth();
   let datauser = {
-    name: "default name",
-    email: "default@gmail.com",
-    avatar: "",
+    name: session?.user?.name || "abc",
+    email: session?.user?.email || "abc",
+    avatar: session?.user?.image || "abc",
   };
-  if (session) {
-    datauser = {
-      name: session.user?.name || "",
-      email: session.user?.email || "",
-      avatar: session.user?.image || "",
-    };
-  }
+  // if (session) {
+  //   datauser = {
+  //     name: session.user?.name || "",
+  //     email: session.user?.email || "",
+  //     avatar: session.user?.image || "",
+  //   };
+  // }
 
   const handleSignout = async () => {
-    "use server";
-    await signOut();
+    await signOut({ redirect: false });
+    router.push("/login");
+  }
+
+  // Handle Loading State
+  if (status === "loading") {
+    return (
+      <Sidebar>
+        <SidebarHeader>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <div className="flex items-center gap-2">
+                <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                  <Sprout />
+                </div>
+                <span className="text-lg font-semibold">AgroTech</span>
+              </div>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarHeader>
+        <SidebarContent>
+          <Skeleton className="h-8 w-3/4 mb-4" />
+          <Skeleton className="h-6 w-full mb-2" />
+          <Skeleton className="h-6 w-full mb-2" />
+        </SidebarContent>
+        <SidebarFooter>
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-10 w-40" />
+            <Skeleton className="h-10 w-10" />
+          </div>
+        </SidebarFooter>
+      </Sidebar>
+    );
   }
 
   return (
     <Sidebar>
-      
 
-        <SidebarHeader>
-            <SidebarMenu>
-                <SidebarMenuItem>
-                    <div className="flex items-center gap-2">
-                        <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                        <Sprout />
-                        </div>
-                        <span className="text-lg font-semibold">AgroTech</span>
-                    </div>
-                </SidebarMenuItem>
-            </SidebarMenu>
-        </SidebarHeader>
 
-        <SidebarContent>
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <div className="flex items-center gap-2">
+              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                <Sprout />
+              </div>
+              <span className="text-lg font-semibold">AgroTech</span>
+            </div>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
+
+      <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Smart Crop Management</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -199,15 +239,15 @@ export async function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-      
+
       </SidebarContent>
 
       <SidebarFooter>
         <div className="flex items-center justify-between">
-              <NavUser user={datauser} handlesignout={handleSignout}/>
-              <ModeToggle />
+          <NavUser user={datauser} handlesignout={handleSignout} />
+          <ModeToggle />
         </div>
-        </SidebarFooter>
+      </SidebarFooter>
     </Sidebar>
   )
 }
