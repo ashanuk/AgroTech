@@ -154,40 +154,30 @@ export default function CropPlanningPage() {
       const recommendationData = await recommendationResponse.json()
       console.log('📋 Recommended crops from ML API:', recommendationData)
 
-      // Handle the actual ML API response format and extract probabilities
-      let cropRecommendations: { name: string, probability: number }[] = []
+      // Handle the actual ML API response format
+      let cropNames: string[] = []
       
       if (Array.isArray(recommendationData)) {
-        // If it's an array of objects with 'crop' and 'probability' fields
-        cropRecommendations = recommendationData.map((item: any) => ({
-          name: item.crop,
-          probability: Math.round((item.probability || 0) * 100) // Convert to percentage
-        })).filter(item => item.name)
-        console.log('🎯 Extracted crop recommendations with probabilities:', cropRecommendations)
+        // If it's an array of objects with 'crop' field
+        cropNames = recommendationData.map((item: any) => item.crop).filter(Boolean)
+        console.log('🎯 Extracted crop names from array:', cropNames)
       } else if (recommendationData.success && recommendationData.recommended_crops) {
         // If it's the expected format
-        cropRecommendations = recommendationData.recommended_crops.map((name: string) => ({
-          name,
-          probability: 85 // Default probability if not provided
-        }))
-        console.log('🎯 Crop names from success response:', cropRecommendations)
+        cropNames = recommendationData.recommended_crops
+        console.log('🎯 Crop names from success response:', cropNames)
       } else if (recommendationData.crop) {
         // If it's a single crop recommendation
-        cropRecommendations = [{
-          name: recommendationData.crop,
-          probability: Math.round((recommendationData.probability || 0.85) * 100)
-        }]
-        console.log('🎯 Single crop recommendation:', cropRecommendations)
+        cropNames = [recommendationData.crop]
+        console.log('🎯 Single crop recommendation:', cropNames)
       } else {
         console.error('❌ Unexpected ML API response format:', recommendationData)
         throw new Error('No valid crop recommendations received from ML API')
       }
 
-      if (cropRecommendations.length === 0) {
+      if (cropNames.length === 0) {
         throw new Error('No crop recommendations found in ML API response')
       }
 
-      const cropNames = cropRecommendations.map(rec => rec.name)
       console.log('🎯 Final crop names to search for:', cropNames)
 
       // Step 2: Get crop details from database using the new API endpoint
@@ -211,29 +201,7 @@ export default function CropPlanningPage() {
       // Handle the response format from your existing API
       if (detailsData.status === 'success' && detailsData.data && detailsData.data.length > 0) {
         console.log('✅ Setting recommended crops:', detailsData.data.length)
-        
-        // Update crop data with ML API probabilities as suitability
-        const cropsWithMLSuitability = detailsData.data.map((crop: ICrop) => {
-          // Find the matching recommendation to get the probability
-          const recommendation = cropRecommendations.find(rec => 
-            rec.name.toLowerCase() === crop.name.toLowerCase() ||
-            rec.name.toLowerCase().includes(crop.name.toLowerCase()) ||
-            crop.name.toLowerCase().includes(rec.name.toLowerCase())
-          )
-          
-          return {
-            ...crop,
-            suitability: recommendation ? recommendation.probability : crop.suitability || 85,
-            isRecommended: true // Mark as recommended crop
-          }
-        })
-        
-        console.log('🎯 Crops with ML suitability scores:', cropsWithMLSuitability.map(c => ({
-          name: c.name,
-          suitability: c.suitability
-        })))
-        
-        setCrops(cropsWithMLSuitability)
+        setCrops(detailsData.data)
         setSearchPerformed(true)
         setSearchQuery("") // Clear search when getting recommendations
         setError(null) // Clear any previous errors
@@ -412,7 +380,7 @@ export default function CropPlanningPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 flex gap-15">
             <div className="space-y-2">
               <label className="text-sm font-medium">Location</label>
               <Input
@@ -423,7 +391,7 @@ export default function CropPlanningPage() {
               />
             </div>
             
-            <div className="space-y-2">
+            {/* <div className="space-y-2">
               <label className="text-sm font-medium">Temperature (°C)</label>
               <Input
                 type="number"
@@ -451,7 +419,7 @@ export default function CropPlanningPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
+            </div> */}
 
             <div className="flex items-end">
               <Button 
