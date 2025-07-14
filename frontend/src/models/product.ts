@@ -1,6 +1,11 @@
 import mongoose, { Document, Model, Schema } from 'mongoose';
 import { IUser } from './user';
 
+export interface ILocation {
+  type: 'Point';
+  coordinates: [number, number]; // [longitude, latitude]
+}
+
 export interface IProduct extends Document {
   farmerId: Schema.Types.ObjectId | IUser; // reference to User
   title: string; // e.g., "Red Bananas"
@@ -11,9 +16,10 @@ export interface IProduct extends Document {
   availableQuantityKg: number;
   unit: string; // "kg", "ton", etc.
   images: string[]; // image URLs or file references
-  location?: string; // optional (for delivery, pickup)
+  location?: ILocation; // optional (for delivery, pickup)
   createdAt: Date;
   updatedAt: Date;
+  address?: string; // optional human-readable address
 }
 
 const ProductSchema: Schema<IProduct> = new Schema({
@@ -62,6 +68,17 @@ const ProductSchema: Schema<IProduct> = new Schema({
     required: false
   }],
   location: {
+    type: {
+      type: String,
+      enum: ['Point'],
+      required: false
+    },
+    coordinates: {
+      type: [Number],
+      required: false
+    }
+  },
+  address: {
     type: String,
     required: false,
     trim: true
