@@ -244,13 +244,18 @@ export default function CropPlanningPage() {
       return
     }
 
-    // Filter crops based on search query
-    const searchResults = allCrops.filter(crop => 
-      crop.name.toLowerCase().includes(query.toLowerCase()) ||
-      crop.scientificName.toLowerCase().includes(query.toLowerCase()) ||
-      crop.description.toLowerCase().includes(query.toLowerCase()) ||
-      crop.type.toLowerCase().includes(query.toLowerCase())
-    )
+    // Filter crops based on search query with null checks
+    const searchResults = allCrops.filter(crop => {
+      const searchTerm = query.toLowerCase()
+      
+      // Safely check each field with null/undefined protection
+      const nameMatch = crop.name?.toLowerCase().includes(searchTerm) || false
+      const scientificNameMatch = crop.scientificName?.toLowerCase().includes(searchTerm) || false
+      const descriptionMatch = crop.description?.toLowerCase().includes(searchTerm) || false
+      const typeMatch = crop.type?.toLowerCase().includes(searchTerm) || false
+      
+      return nameMatch || scientificNameMatch || descriptionMatch || typeMatch
+    })
     
     console.log('🎯 Search results:', searchResults.length, 'crops found')
     console.log('📋 Found crops:', searchResults.map(c => c.name))
