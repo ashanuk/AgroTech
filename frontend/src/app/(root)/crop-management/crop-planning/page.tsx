@@ -154,30 +154,40 @@ export default function CropPlanningPage() {
       const recommendationData = await recommendationResponse.json()
       console.log('📋 Recommended crops from ML API:', recommendationData)
 
-      // Handle the actual ML API response format
-      let cropNames: string[] = []
+      // Handle the actual ML API response format and extract probabilities
+      let cropRecommendations: { name: string, probability: number }[] = []
       
       if (Array.isArray(recommendationData)) {
-        // If it's an array of objects with 'crop' field
-        cropNames = recommendationData.map((item: any) => item.crop).filter(Boolean)
-        console.log('🎯 Extracted crop names from array:', cropNames)
+        // If it's an array of objects with 'crop' and 'probability' fields
+        cropRecommendations = recommendationData.map((item: any) => ({
+          name: item.crop,
+          probability: Math.round((item.probability || 0) * 100) // Convert to percentage
+        })).filter(item => item.name)
+        console.log('🎯 Extracted crop recommendations with probabilities:', cropRecommendations)
       } else if (recommendationData.success && recommendationData.recommended_crops) {
         // If it's the expected format
-        cropNames = recommendationData.recommended_crops
-        console.log('🎯 Crop names from success response:', cropNames)
+        cropRecommendations = recommendationData.recommended_crops.map((name: string) => ({
+          name,
+          probability: 85 // Default probability if not provided
+        }))
+        console.log('🎯 Crop names from success response:', cropRecommendations)
       } else if (recommendationData.crop) {
         // If it's a single crop recommendation
-        cropNames = [recommendationData.crop]
-        console.log('🎯 Single crop recommendation:', cropNames)
+        cropRecommendations = [{
+          name: recommendationData.crop,
+          probability: Math.round((recommendationData.probability || 0.85) * 100)
+        }]
+        console.log('🎯 Single crop recommendation:', cropRecommendations)
       } else {
         console.error('❌ Unexpected ML API response format:', recommendationData)
         throw new Error('No valid crop recommendations received from ML API')
       }
 
-      if (cropNames.length === 0) {
+      if (cropRecommendations.length === 0) {
         throw new Error('No crop recommendations found in ML API response')
       }
 
+      const cropNames = cropRecommendations.map(rec => rec.name)
       console.log('🎯 Final crop names to search for:', cropNames)
 
       // Step 2: Get crop details from database using the new API endpoint
@@ -201,7 +211,29 @@ export default function CropPlanningPage() {
       // Handle the response format from your existing API
       if (detailsData.status === 'success' && detailsData.data && detailsData.data.length > 0) {
         console.log('✅ Setting recommended crops:', detailsData.data.length)
-        setCrops(detailsData.data)
+        
+        // Update crop data with ML API probabilities as suitability
+        const cropsWithMLSuitability = detailsData.data.map((crop: ICrop) => {
+          // Find the matching recommendation to get the probability
+          const recommendation = cropRecommendations.find(rec => 
+            rec.name.toLowerCase() === crop.name.toLowerCase() ||
+            rec.name.toLowerCase().includes(crop.name.toLowerCase()) ||
+            crop.name.toLowerCase().includes(rec.name.toLowerCase())
+          )
+          
+          return {
+            ...crop,
+            suitability: recommendation ? recommendation.probability : crop.suitability || 85,
+            isRecommended: true // Mark as recommended crop
+          }
+        })
+        
+        console.log('🎯 Crops with ML suitability scores:', cropsWithMLSuitability.map(c => ({
+          name: c.name,
+          suitability: c.suitability
+        })))
+        
+        setCrops(cropsWithMLSuitability)
         setSearchPerformed(true)
         setSearchQuery("") // Clear search when getting recommendations
         setError(null) // Clear any previous errors
