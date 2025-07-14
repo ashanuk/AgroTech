@@ -20,13 +20,18 @@ export async function GET(req: NextRequest) {
                     text: {
                         query: title,
                         path: 'title',
-                        fuzzy: { maxEdits: 2 },
-                    },
-                },
+                        fuzzy: {
+                            maxEdits: 2,
+                            prefixLength: 1
+                        }
+                    }
+                }
             },
+            { $project: { _id: 1, title: 1, pricePerKg: 1, availableQuantityKg: 1 } },
             { $skip: skip },
-            { $limit: limit },
+            { $limit: limit }
         ];
+
 
         const products = await Product.aggregate(searchPipeline);
 
