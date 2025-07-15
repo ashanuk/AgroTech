@@ -1,497 +1,576 @@
 "use client";
 
 import { useState } from "react";
+  import { useParams } from "next/navigation";
+import { useQuery, useMutation } from "@apollo/client";
 import {
   ArrowLeft,
-  ThumbsUp,
-  ThumbsDown,
-  Reply,
-  Share2,
-  Flag,
-  Calendar,
-  Eye,
   MessageCircle,
-  Pin,
+  Heart,
+  Reply,
+  MoreVertical,
+  Send,
+  Upload,
+  X,
   Lock,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import Link from "next/link";
+import {
+  GET_THREAD,
+  GET_POSTS,
+  CREATE_POST_MUTATION,
+  LIKE_POST_MUTATION,
+  UNLIKE_POST_MUTATION,
+  DELETE_POST_MUTATION,
+  GET_ME,
+  UPLOAD_IMAGE_MUTATION,
+} from "@/lib/graphql/queries";
+import { Thread, Post, User } from "@/lib/graphql/types";
 
-interface ThreadReply {
-  id: string;
-  content: string;
-  author: {
-    name: string;
-    avatar?: string;
-    id: string;
-    joinDate: Date;
-    postCount: number;
-  };
-  createdAt: Date;
-  likes: number;
-  dislikes: number;
-  isLiked: boolean;
-  isDisliked: boolean;
-  replies?: ThreadReply[];
+function formatDistanceToNow(date: Date): string {
+  const now = new Date();
+  const diffInMinutes = Math.floor(
+    (now.getTime() - date.getTime()) / (1000 * 60)
+  );
+
+  if (diffInMinutes < 1) return "just now";
+  if (diffInMinutes < 60) return `${diffInMinutes}m ago`;
+
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours}h ago`;
+
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays < 30) return `${diffInDays}d ago`;
+
+  const diffInMonths = Math.floor(diffInDays / 30);
+  if (diffInMonths < 12) return `${diffInMonths}mo ago`;
+
+  const diffInYears = Math.floor(diffInMonths / 12);
+  return `${diffInYears}y ago`;
 }
 
-interface ForumThread {
-  id: string;
-  title: string;
-  content: string;
-  author: {
-    name: string;
-    avatar?: string;
-    id: string;
-    joinDate: Date;
-    postCount: number;
-  };
-  category: string;
-  tags: string[];
-  replies: ThreadReply[];
-  views: number;
-  likes: number;
-  dislikes: number;
-  isLiked: boolean;
-  isDisliked: boolean;
-  isSticky: boolean;
-  isLocked: boolean;
-  createdAt: Date;
-  lastActivity: Date;
+interface PostComponentProps {
+  post: Post;
+  currentUser?: User;
+  onReply: (postId: string) => void;
+  onLike: (postId: string) => void;
+  onUnlike: (postId: string) => void;
+  onDelete: (postId: string) => void;
+  isReply?: boolean;
 }
 
-const categories: Record<string, { name: string; color: string }> = {
-  general: { name: "General Discussion", color: "bg-blue-500" },
-  "crop-management": { name: "Crop Management", color: "bg-green-500" },
-  "pest-control": { name: "Pest & Disease Control", color: "bg-red-500" },
-  irrigation: { name: "Irrigation & Water Management", color: "bg-cyan-500" },
-  equipment: { name: "Equipment & Technology", color: "bg-purple-500" },
-  market: { name: "Market & Prices", color: "bg-yellow-500" },
-  organic: { name: "Organic Farming", color: "bg-emerald-500" },
-  livestock: { name: "Livestock", color: "bg-orange-500" },
-};
-
-// Dummy data for demonstration
-const dummyThread: ForumThread = {
-  id: "1",
-  title: "Best irrigation techniques for rice cultivation in monsoon season",
-  content: `Looking for advice on managing water levels during heavy rainfall periods. My fields tend to get waterlogged during the monsoon season, and I'm struggling to maintain proper irrigation for my rice crops.
-
-I'm currently using flood irrigation, but I'm wondering if there are better alternatives that can help me:
-
-1. Prevent waterlogging during heavy rains
-2. Maintain consistent water levels
-3. Reduce water wastage
-4. Improve crop yield
-
-My farm is located in Punjab, and I have about 10 acres of rice fields. The soil is clay-loam, and we typically get 600-800mm of rainfall during monsoon.
-
-Has anyone faced similar challenges? What irrigation methods have worked best for you in similar conditions?
-
-Any advice would be greatly appreciated!`,
-  author: {
-    name: "Ramesh Kumar",
-    id: "user1",
-    joinDate: new Date("2023-01-15"),
-    postCount: 45,
-  },
-  category: "irrigation",
-  tags: ["rice", "monsoon", "water-management", "punjab"],
-  replies: [
-    {
-      id: "r1",
-      content:
-        "I've been using System of Rice Intensification (SRI) method for the past 3 years, and it's been a game-changer! Instead of continuous flooding, you maintain just 2-3 cm of water, which reduces waterlogging issues significantly.",
-      author: {
-        name: "Priya Sharma",
-        id: "user2",
-        joinDate: new Date("2022-08-20"),
-        postCount: 78,
-      },
-      createdAt: new Date(Date.now() - 6 * 60 * 60 * 1000),
-      likes: 12,
-      dislikes: 0,
-      isLiked: false,
-      isDisliked: false,
-    },
-    {
-      id: "r2",
-      content:
-        "Consider installing drainage systems around your fields. I had similar issues in my fields in Haryana. Installing proper drainage channels helped manage excess water during heavy rains while maintaining irrigation during dry spells.",
-      author: {
-        name: "Gurpreet Singh",
-        id: "user3",
-        joinDate: new Date("2023-03-10"),
-        postCount: 23,
-      },
-      createdAt: new Date(Date.now() - 4 * 60 * 60 * 1000),
-      likes: 8,
-      dislikes: 0,
-      isLiked: false,
-      isDisliked: false,
-    },
-    {
-      id: "r3",
-      content:
-        "Have you considered drip irrigation for rice? I know it sounds unusual, but there are some innovative techniques being developed. Also, check with your local agricultural extension office - they often have region-specific solutions.",
-      author: {
-        name: "Dr. Anita Patel",
-        id: "user4",
-        joinDate: new Date("2021-12-05"),
-        postCount: 156,
-      },
-      createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000),
-      likes: 15,
-      dislikes: 1,
-      isLiked: true,
-      isDisliked: false,
-    },
-  ],
-  views: 234,
-  likes: 28,
-  dislikes: 2,
-  isLiked: false,
-  isDisliked: false,
-  isSticky: true,
-  isLocked: false,
-  createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000),
-  lastActivity: new Date(Date.now() - 2 * 60 * 60 * 1000),
-};
-
-export default function ThreadPage() {
-  const [thread, setThread] = useState<ForumThread>(dummyThread);
-  const [replyContent, setReplyContent] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-
-  const formatTimeAgo = (date: Date) => {
-    const now = new Date();
-    const diffMs = now.getTime() - date.getTime();
-    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
-    const diffDays = Math.floor(diffHours / 24);
-
-    if (diffHours < 1) return "Just now";
-    if (diffHours < 24) return `${diffHours}h ago`;
-    if (diffDays < 7) return `${diffDays}d ago`;
-    return date.toLocaleDateString();
-  };
-
-  const handleLike = (type: "thread" | "reply", id?: string) => {
-    if (type === "thread") {
-      setThread((prev) => ({
-        ...prev,
-        likes: prev.isLiked ? prev.likes - 1 : prev.likes + 1,
-        dislikes: prev.isDisliked ? prev.dislikes - 1 : prev.dislikes,
-        isLiked: !prev.isLiked,
-        isDisliked: false,
-      }));
-    } else if (id) {
-      setThread((prev) => ({
-        ...prev,
-        replies: prev.replies.map((reply) =>
-          reply.id === id
-            ? {
-                ...reply,
-                likes: reply.isLiked ? reply.likes - 1 : reply.likes + 1,
-                dislikes: reply.isDisliked
-                  ? reply.dislikes - 1
-                  : reply.dislikes,
-                isLiked: !reply.isLiked,
-                isDisliked: false,
-              }
-            : reply
-        ),
-      }));
-    }
-  };
-
-  const handleDislike = (type: "thread" | "reply", id?: string) => {
-    if (type === "thread") {
-      setThread((prev) => ({
-        ...prev,
-        dislikes: prev.isDisliked ? prev.dislikes - 1 : prev.dislikes + 1,
-        likes: prev.isLiked ? prev.likes - 1 : prev.likes,
-        isDisliked: !prev.isDisliked,
-        isLiked: false,
-      }));
-    } else if (id) {
-      setThread((prev) => ({
-        ...prev,
-        replies: prev.replies.map((reply) =>
-          reply.id === id
-            ? {
-                ...reply,
-                dislikes: reply.isDisliked
-                  ? reply.dislikes - 1
-                  : reply.dislikes + 1,
-                likes: reply.isLiked ? reply.likes - 1 : reply.likes,
-                isDisliked: !reply.isDisliked,
-                isLiked: false,
-              }
-            : reply
-        ),
-      }));
-    }
-  };
-
-  const handleSubmitReply = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!replyContent.trim()) return;
-
-    setIsSubmitting(true);
-
-    // Simulate API call
-    await new Promise((resolve) => setTimeout(resolve, 1000));
-
-    const newReply: ThreadReply = {
-      id: `r${Date.now()}`,
-      content: replyContent,
-      author: {
-        name: "Current User",
-        id: "current-user",
-        joinDate: new Date("2023-06-01"),
-        postCount: 12,
-      },
-      createdAt: new Date(),
-      likes: 0,
-      dislikes: 0,
-      isLiked: false,
-      isDisliked: false,
-    };
-
-    setThread((prev) => ({
-      ...prev,
-      replies: [...prev.replies, newReply],
-    }));
-
-    setReplyContent("");
-    setIsSubmitting(false);
-  };
-
-  const categoryInfo = categories[thread.category];
+function PostComponent({
+  post,
+  currentUser,
+  onReply,
+  onLike,
+  onUnlike,
+  onDelete,
+  isReply = false,
+}: PostComponentProps) {
+  const isLiked = currentUser
+    ? post.likes.some((user) => user.id === currentUser.id)
+    : false;
+  const canDelete = currentUser?.id === post.user.id;
 
   return (
-    <div className="container mx-auto max-w-4xl px-4 py-6">
-      {/* Header */}
-      <div className="mb-6">
-        <div className="flex items-center gap-4 mb-4">
-          <Link href="/community/forum">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Forum
-            </Button>
-          </Link>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Eye className="h-4 w-4" />
-            <span>{thread.views} views</span>
-          </div>
-        </div>
-      </div>
+    <div className={`${isReply ? "ml-8 border-l-2 border-gray-200 pl-4" : ""}`}>
+      <Card className="mb-4">
+        <CardContent className="p-6">
+          <div className="flex gap-4">
+            <Avatar className="h-10 w-10">
+              <AvatarImage src={post.user.avatar_url} />
+              <AvatarFallback>
+                {post.user.username.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
 
-      {/* Thread */}
-      <Card className="mb-6">
-        <CardHeader>
-          <div className="flex items-start justify-between">
             <div className="flex-1">
-              <div className="flex items-center gap-2 mb-2">
-                {thread.isSticky && <Pin className="h-4 w-4 text-amber-500" />}
-                {thread.isLocked && <Lock className="h-4 w-4 text-red-500" />}
-                <h1 className="text-2xl font-bold">{thread.title}</h1>
-              </div>
-
-              <div className="flex items-center gap-2 mb-4">
-                {categoryInfo && (
-                  <Badge variant="secondary" className="gap-1">
-                    <div
-                      className={`w-2 h-2 rounded-full ${categoryInfo.color}`}
-                    />
-                    {categoryInfo.name}
-                  </Badge>
-                )}
-                {thread.tags.map((tag) => (
-                  <Badge key={tag} variant="outline" className="text-xs">
-                    #{tag}
-                  </Badge>
-                ))}
-              </div>
-
-              <div className="flex items-center gap-4 text-sm text-muted-foreground">
+              <div className="flex items-center justify-between mb-2">
                 <div className="flex items-center gap-2">
-                  <Avatar className="h-6 w-6">
-                    <AvatarImage src={thread.author.avatar} />
-                    <AvatarFallback>
-                      {thread.author.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span>{thread.author.name}</span>
+                  <span className="font-semibold">{post.user.username}</span>
+                  {post.user.is_verified && (
+                    <Badge variant="secondary" className="text-xs">
+                      Verified
+                    </Badge>
+                  )}
+                  <span className="text-sm text-gray-500">
+                    {formatDistanceToNow(new Date(post.created_at))}
+                  </span>
+                  {post.is_edited && (
+                    <span className="text-xs text-gray-400">(edited)</span>
+                  )}
                 </div>
-                <div className="flex items-center gap-1">
-                  <Calendar className="h-4 w-4" />
-                  <span>{formatTimeAgo(thread.createdAt)}</span>
-                </div>
+
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm">
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    {canDelete && (
+                      <DropdownMenuItem
+                        onClick={() => onDelete(post.id)}
+                        className="text-red-600"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete
+                      </DropdownMenuItem>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-            </div>
 
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="sm" className="gap-1">
-                <Share2 className="h-4 w-4" />
-                Share
-              </Button>
-              <Button variant="ghost" size="sm" className="gap-1">
-                <Flag className="h-4 w-4" />
-                Report
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
+              <div className="prose dark:prose-invert max-w-none mb-4">
+                <p className="whitespace-pre-wrap">{post.content}</p>
+              </div>
 
-        <CardContent>
-          <div className="prose max-w-none mb-6">
-            {thread.content.split("\n").map((paragraph, index) => (
-              <p key={index} className="mb-4 last:mb-0">
-                {paragraph}
-              </p>
-            ))}
-          </div>
+              {post.image_urls.length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  {post.image_urls.map((url, index) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={index}
+                      src={url}
+                      alt={`Post image ${index + 1}`}
+                      className="rounded-lg max-w-full h-auto"
+                      loading="lazy"
+                    />
+                  ))}
+                </div>
+              )}
 
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2">
-              <Button
-                variant={thread.isLiked ? "default" : "ghost"}
-                size="sm"
-                onClick={() => handleLike("thread")}
-                className="gap-1"
-              >
-                <ThumbsUp className="h-4 w-4" />
-                {thread.likes}
-              </Button>
-              <Button
-                variant={thread.isDisliked ? "destructive" : "ghost"}
-                size="sm"
-                onClick={() => handleDislike("thread")}
-                className="gap-1"
-              >
-                <ThumbsDown className="h-4 w-4" />
-                {thread.dislikes}
-              </Button>
-            </div>
+              <div className="flex items-center gap-4">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() =>
+                    isLiked ? onUnlike(post.id) : onLike(post.id)
+                  }
+                  className={isLiked ? "text-red-500" : ""}
+                >
+                  <Heart
+                    className={`h-4 w-4 mr-1 ${isLiked ? "fill-current" : ""}`}
+                  />
+                  {post.like_count}
+                </Button>
 
-            <div className="flex items-center gap-1 text-sm text-muted-foreground">
-              <MessageCircle className="h-4 w-4" />
-              <span>{thread.replies.length} replies</span>
+                {!isReply && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => onReply(post.id)}
+                  >
+                    <Reply className="h-4 w-4 mr-1" />
+                    Reply
+                  </Button>
+                )}
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Replies */}
-      <div className="space-y-4 mb-6">
-        <h2 className="text-xl font-semibold">
-          Replies ({thread.replies.length})
-        </h2>
+      {/* Render replies */}
+      {post.replies && post.replies.length > 0 && (
+        <div className="ml-4">
+          {post.replies.map((reply) => (
+            <PostComponent
+              key={reply.id}
+              post={reply}
+              currentUser={currentUser}
+              onReply={onReply}
+              onLike={onLike}
+              onUnlike={onUnlike}
+              onDelete={onDelete}
+              isReply={true}
+            />
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
 
-        {thread.replies.map((reply, index) => (
-          <Card key={reply.id}>
-            <CardContent className="pt-6">
-              <div className="flex gap-4">
-                <div className="flex-shrink-0">
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage src={reply.author.avatar} />
-                    <AvatarFallback>
-                      {reply.author.name.charAt(0)}
-                    </AvatarFallback>
-                  </Avatar>
-                </div>
+export default function ThreadPage() {
+  const params = useParams();
+  const threadId = params.id as string;
 
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <span className="font-medium">{reply.author.name}</span>
-                    <span className="text-sm text-muted-foreground">
-                      {formatTimeAgo(reply.createdAt)}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      #{index + 1}
-                    </span>
-                  </div>
+  const [replyContent, setReplyContent] = useState("");
+  const [replyToPostId, setReplyToPostId] = useState<string | null>(null);
+  const [imageUrls, setImageUrls] = useState<string[]>([]);
+  const [imageInput, setImageInput] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
-                  <div className="prose max-w-none mb-4">
-                    <p>{reply.content}</p>
-                  </div>
+  const { data: meData } = useQuery(GET_ME, { errorPolicy: "ignore" });
+  const { data: threadData, loading: threadLoading } = useQuery(GET_THREAD, {
+    variables: { id: threadId },
+    skip: !threadId,
+  });
 
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant={reply.isLiked ? "default" : "ghost"}
-                        size="sm"
-                        onClick={() => handleLike("reply", reply.id)}
-                        className="gap-1"
-                      >
-                        <ThumbsUp className="h-4 w-4" />
-                        {reply.likes}
-                      </Button>
-                      <Button
-                        variant={reply.isDisliked ? "destructive" : "ghost"}
-                        size="sm"
-                        onClick={() => handleDislike("reply", reply.id)}
-                        className="gap-1"
-                      >
-                        <ThumbsDown className="h-4 w-4" />
-                        {reply.dislikes}
-                      </Button>
-                    </div>
+  const {
+    data: postsData,
+    loading: postsLoading,
+    refetch: refetchPosts,
+  } = useQuery(GET_POSTS, {
+    variables: { thread_id: threadId, limit: 50, offset: 0 },
+    skip: !threadId,
+  });
 
-                    <Button variant="ghost" size="sm" className="gap-1">
-                      <Reply className="h-4 w-4" />
-                      Reply
-                    </Button>
+  const [createPost] = useMutation(CREATE_POST_MUTATION);
+  const [likePost] = useMutation(LIKE_POST_MUTATION);
+  const [unlikePost] = useMutation(UNLIKE_POST_MUTATION);
+  const [deletePost] = useMutation(DELETE_POST_MUTATION);
+  const [uploadImage] = useMutation(UPLOAD_IMAGE_MUTATION);
 
-                    <Button variant="ghost" size="sm" className="gap-1">
-                      <Flag className="h-4 w-4" />
-                      Report
-                    </Button>
-                  </div>
-                </div>
+  const thread: Thread | undefined = threadData?.thread;
+  const posts: Post[] = postsData?.posts || [];
+  const currentUser: User | undefined = meData?.me;
+
+  const handleAddImage = () => {
+    if (imageInput.trim() && !imageUrls.includes(imageInput.trim())) {
+      setImageUrls([...imageUrls, imageInput.trim()]);
+      setImageInput("");
+    }
+  };
+
+  const handleFileUpload = async (file: File) => {
+    if (!file) return;
+
+    setIsUploadingImage(true);
+    try {
+      const result = await uploadImage({
+        variables: { file },
+      });
+      
+      const imageUrl = result.data?.uploadImage;
+      if (imageUrl) {
+        setImageUrls([...imageUrls, imageUrl]);
+      }
+    } catch (error) {
+      console.error("Error uploading image:", error);
+      alert("Failed to upload image. Please try again.");
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleRemoveImage = (urlToRemove: string) => {
+    setImageUrls(imageUrls.filter((url) => url !== urlToRemove));
+  };
+
+  const handleReply = (postId: string) => {
+    setReplyToPostId(postId);
+    // Scroll to reply form
+    document
+      .getElementById("reply-form")
+      ?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  const handleSubmitReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!replyContent.trim()) {
+      alert("Please enter your reply");
+      return;
+    }
+
+    if (!currentUser) {
+      alert("Please log in to post a reply");
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      await createPost({
+        variables: {
+          input: {
+            thread_id: threadId,
+            content: replyContent.trim(),
+            image_urls: imageUrls,
+            parent_post_id: replyToPostId,
+          },
+        },
+      });
+
+      // Reset form
+      setReplyContent("");
+      setImageUrls([]);
+      setReplyToPostId(null);
+
+      // Refetch posts
+      refetchPosts();
+    } catch (error) {
+      console.error("Error posting reply:", error);
+      alert("Failed to post reply. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleLike = async (postId: string) => {
+    if (!currentUser) {
+      alert("Please log in to like posts");
+      return;
+    }
+
+    try {
+      await likePost({
+        variables: { id: postId },
+      });
+      refetchPosts();
+    } catch (error) {
+      console.error("Error liking post:", error);
+    }
+  };
+
+  const handleUnlike = async (postId: string) => {
+    if (!currentUser) return;
+
+    try {
+      await unlikePost({
+        variables: { id: postId },
+      });
+      refetchPosts();
+    } catch (error) {
+      console.error("Error unliking post:", error);
+    }
+  };
+
+  const handleDelete = async (postId: string) => {
+    if (!window.confirm("Are you sure you want to delete this post?")) {
+      return;
+    }
+
+    try {
+      await deletePost({
+        variables: { id: postId },
+      });
+      refetchPosts();
+    } catch (error) {
+      console.error("Error deleting post:", error);
+      alert("Failed to delete post. Please try again.");
+    }
+  };
+
+  if (threadLoading || postsLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="animate-pulse space-y-4">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
+          <div className="space-y-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-32 bg-gray-200 rounded"></div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!thread) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <h2 className="text-xl font-semibold mb-2">Thread not found</h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              The thread you&apos;re looking for doesn&apos;t exist or has been
+              deleted.
+            </p>
+            <Link href="/community/forum">
+              <Button className="mt-4">Back to Forum</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mx-auto px-4 py-8 max-w-4xl">
+      {/* Header */}
+      <div className="flex items-center gap-4 mb-6">
+        <Link href="/community/forum">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Forum
+          </Button>
+        </Link>
+      </div>
+
+      {/* Thread Header */}
+      <Card className="mb-6">
+        <CardHeader>
+          <div className="flex items-start justify-between">
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-2">
+                {thread.is_locked && <Lock className="h-5 w-5 text-gray-500" />}
+                <CardTitle className="text-2xl">{thread.title}</CardTitle>
               </div>
+              <div className="flex items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                <span>by {thread.user.username}</span>
+                <span>in {thread.category.name}</span>
+                <span>{formatDistanceToNow(new Date(thread.created_at))}</span>
+                <span>{thread.post_count || 0} replies</span>
+              </div>
+            </div>
+          </div>
+        </CardHeader>
+      </Card>
+
+      {/* Posts */}
+      <div className="space-y-4 mb-8">
+        {posts.map((post) => (
+          <PostComponent
+            key={post.id}
+            post={post}
+            currentUser={currentUser}
+            onReply={handleReply}
+            onLike={handleLike}
+            onUnlike={handleUnlike}
+            onDelete={handleDelete}
+          />
+        ))}
+
+        {posts.length === 0 && (
+          <Card>
+            <CardContent className="p-8 text-center">
+              <MessageCircle className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">No posts yet</h3>
+              <p className="text-gray-600 dark:text-gray-400">
+                Be the first to reply to this thread!
+              </p>
             </CardContent>
           </Card>
-        ))}
+        )}
       </div>
 
       {/* Reply Form */}
-      {!thread.isLocked && (
-        <Card>
+      {!thread.is_locked && currentUser && (
+        <Card id="reply-form">
           <CardHeader>
-            <CardTitle>Post a Reply</CardTitle>
+            <CardTitle className="text-lg">
+              {replyToPostId ? "Reply to Post" : "Add Your Reply"}
+            </CardTitle>
+            {replyToPostId && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setReplyToPostId(null)}
+                className="w-fit"
+              >
+                <X className="h-4 w-4 mr-2" />
+                Cancel Reply
+              </Button>
+            )}
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmitReply}>
+            <form onSubmit={handleSubmitReply} className="space-y-4">
               <Textarea
-                placeholder="Write your reply here..."
+                placeholder="Write your reply..."
                 value={replyContent}
-                onChange={(e: React.ChangeEvent<HTMLTextAreaElement>) =>
-                  setReplyContent(e.target.value)
-                }
-                rows={6}
-                className="mb-4"
+                onChange={(e) => setReplyContent(e.target.value)}
+                className="min-h-[120px]"
                 required
               />
-              <div className="flex justify-end">
+
+              {/* Image Upload */}
+              <div className="space-y-2">
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Enter image URL..."
+                    value={imageInput}
+                    onChange={(e) => setImageInput(e.target.value)}
+                    onKeyPress={(e) =>
+                      e.key === "Enter" &&
+                      (e.preventDefault(), handleAddImage())
+                    }
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleAddImage}
+                    disabled={!imageInput.trim()}
+                  >
+                    <Upload className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                {/* File Upload */}
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="image/*"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        handleFileUpload(file);
+                      }
+                    }}
+                    disabled={isUploadingImage}
+                  />
+                  {isUploadingImage && (
+                    <div className="text-sm text-gray-500">Uploading...</div>
+                  )}
+                </div>
+
+                {imageUrls.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-sm font-medium">Images to include:</p>
+                    {imageUrls.map((url, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded"
+                      >
+                        <img
+                          src={url}
+                          alt={`Preview ${index + 1}`}
+                          className="w-12 h-12 object-cover rounded"
+                        />
+                        <span className="flex-1 text-sm truncate">{url}</span>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleRemoveImage(url)}
+                        >
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="flex gap-2">
                 <Button
                   type="submit"
                   disabled={!replyContent.trim() || isSubmitting}
-                  className="gap-2"
+                  className="bg-green-600 hover:bg-green-700"
                 >
                   {isSubmitting ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white" />
-                      Posting...
-                    </>
+                    "Posting..."
                   ) : (
                     <>
-                      <Reply className="h-4 w-4" />
+                      <Send className="w-4 h-4 mr-2" />
                       Post Reply
                     </>
                   )}
@@ -502,13 +581,28 @@ export default function ThreadPage() {
         </Card>
       )}
 
-      {thread.isLocked && (
+      {/* Login Prompt */}
+      {!currentUser && (
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Lock className="h-4 w-4" />
-              <span>This thread is locked. No new replies can be posted.</span>
-            </div>
+          <CardContent className="p-6 text-center">
+            <p className="text-gray-600 dark:text-gray-400 mb-4">
+              Please log in to participate in this discussion
+            </p>
+            <Link href="/login">
+              <Button>Log In</Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Locked Thread Message */}
+      {thread.is_locked && (
+        <Card className="border-yellow-200 bg-yellow-50 dark:bg-yellow-900/20">
+          <CardContent className="p-4 text-center">
+            <Lock className="mx-auto h-8 w-8 text-yellow-500 mb-2" />
+            <p className="text-yellow-700 dark:text-yellow-300">
+              This thread has been locked and no new replies can be added.
+            </p>
           </CardContent>
         </Card>
       )}
