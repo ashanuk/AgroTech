@@ -20,6 +20,7 @@ export interface IProduct extends Document {
   createdAt: Date;
   updatedAt: Date;
   address?: string; // optional human-readable address
+
 }
 
 const ProductSchema: Schema<IProduct> = new Schema({

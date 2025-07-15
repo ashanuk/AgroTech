@@ -19,7 +19,8 @@ const ReservationSchema: Schema<IReservation> = new Schema({
   },
   productId: {
     type: Schema.Types.ObjectId,
-    ref: 'Crop',
+
+    ref: 'Product',
     required: true
   },
   quantityKg: {
@@ -47,7 +48,8 @@ const ReservationSchema: Schema<IReservation> = new Schema({
 
 // Create indexes for common queries
 ReservationSchema.index({ buyerId: 1 });
-ReservationSchema.index({ cropId: 1 });
+
+ReservationSchema.index({ productId: 1 });
 ReservationSchema.index({ status: 1 });
 ReservationSchema.index({ reservedAt: -1 }); // For sorting by newest reservations first
 
