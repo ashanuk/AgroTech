@@ -1,5 +1,5 @@
-import { Calendar, Home, Inbox, Search, Settings, Sprout } from "lucide-react"
-import { NavUser } from "@/components/nav-user"
+import { Calendar, Home, Inbox, Search, Settings, Sprout } from "lucide-react";
+import { NavUser } from "@/components/nav-user";
 
 import {
   Sidebar,
@@ -11,11 +11,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-  SidebarFooter
-} from "@/components/ui/sidebar"
+  SidebarFooter,
+} from "@/components/ui/sidebar";
 
-import { ModeToggle } from "./mode-toggle"
-import { auth, signOut } from "@/lib/auth"
+import { ModeToggle } from "./mode-toggle";
+import { auth, signOut } from "@/lib/auth";
 
 const smartCropManagementItems = [
   {
@@ -33,7 +33,7 @@ const smartCropManagementItems = [
     url: "#",
     icon: Calendar,
   },
-]
+];
 
 const resourceOptimizationItems = [
   {
@@ -51,7 +51,7 @@ const resourceOptimizationItems = [
     url: "#",
     icon: Calendar,
   },
-]
+];
 
 const marketIntelligentItems = [
   {
@@ -69,12 +69,12 @@ const marketIntelligentItems = [
     url: "#",
     icon: Calendar,
   },
-]
+];
 
 const communityItems = [
   {
     title: "Farmer Forum",
-    url: "#",
+    url: "/community/forum",
     icon: Home,
   },
   {
@@ -87,10 +87,9 @@ const communityItems = [
     url: "#",
     icon: Calendar,
   },
-]
+];
 
 export async function AppSidebar() {
-  
   const session = await auth();
   let datauser = {
     name: "default name",
@@ -108,26 +107,24 @@ export async function AppSidebar() {
   const handleSignout = async () => {
     "use server";
     await signOut();
-  }
+  };
 
   return (
     <Sidebar>
-      
+      <SidebarHeader>
+        <SidebarMenu>
+          <SidebarMenuItem>
+            <div className="flex items-center gap-2">
+              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                <Sprout />
+              </div>
+              <span className="text-lg font-semibold">AgroTech</span>
+            </div>
+          </SidebarMenuItem>
+        </SidebarMenu>
+      </SidebarHeader>
 
-        <SidebarHeader>
-            <SidebarMenu>
-                <SidebarMenuItem>
-                    <div className="flex items-center gap-2">
-                        <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
-                        <Sprout />
-                        </div>
-                        <span className="text-lg font-semibold">AgroTech</span>
-                    </div>
-                </SidebarMenuItem>
-            </SidebarMenu>
-        </SidebarHeader>
-
-        <SidebarContent>
+      <SidebarContent>
         <SidebarGroup>
           <SidebarGroupLabel>Smart Crop Management</SidebarGroupLabel>
           <SidebarGroupContent>
@@ -199,15 +196,14 @@ export async function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-      
       </SidebarContent>
 
       <SidebarFooter>
         <div className="flex items-center justify-between">
-              <NavUser user={datauser} handlesignout={handleSignout}/>
-              <ModeToggle />
+          <NavUser user={datauser} handlesignout={handleSignout} />
+          <ModeToggle />
         </div>
-        </SidebarFooter>
+      </SidebarFooter>
     </Sidebar>
-  )
+  );
 }

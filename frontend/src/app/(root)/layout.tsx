@@ -3,10 +3,11 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import GraphQLProvider from "@/providers/GraphQLProvider";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
-import { auth } from "@/lib/auth";
-import { redirect } from "next/navigation";
+// import { auth } from "@/lib/auth";
+// import { redirect } from "next/navigation";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -28,9 +29,8 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
-  const session = await auth();
-  if (!session) { redirect("/login"); }
+  // const session = await auth();
+  // if (!session) { redirect("/login"); }
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -43,14 +43,13 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SidebarProvider>
-            <AppSidebar />
-            <SidebarTrigger />
-            <main className="p-2 w-full">
-              {children}
-            </main>
-
-          </SidebarProvider>
+          <GraphQLProvider>
+            <SidebarProvider>
+              <AppSidebar />
+              <SidebarTrigger />
+              <main className="p-2 w-full">{children}</main>
+            </SidebarProvider>
+          </GraphQLProvider>
         </ThemeProvider>
       </body>
     </html>
