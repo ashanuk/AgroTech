@@ -8,7 +8,7 @@ interface ILocation {
 interface IUser extends Document {
     name: string;
     email: string;
-    password?: string; // Github login donot need password
+    password: string;
     location?: ILocation;
     address?: string; // Human readable address from location
     username?: string;
