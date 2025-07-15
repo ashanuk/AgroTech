@@ -1,0 +1,78 @@
+### Test Database Connection
+GET http://localhost:3000/api/test-db
+###
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 17:33:54 GMT
+connection: close
+transfer-encoding: chunked
+###
+GET http://localhost:3000/api/reservations
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 17:57:19 GMT
+connection: close
+transfer-encoding: chunked
+###
+GET http://localhost:3000/api/reservations?buyerId=686ba0c3c7c62ce35d4f8b72
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 17:57:57 GMT
+connection: close
+transfer-encoding: chunked
+###
+GET http://localhost:3000/api/reservations?buyerId=60d5ec49b54df31bb8c5b123&status=reserved
+###
+GET http://localhost:3000/api/reservations?buyerId=60d5ec49b54df31bb8c5b123&status=fulfilled
+###
+GET http://localhost:3000/api/reservations?productId=60d5ec49b54df31bb8c5b456
+###
+GET http://localhost:3000/api/reservations?buyerId=60d5ec49b54df31bb8c5b123&page=1&limit=5
+###
+POST http://localhost:3000/api/reservations
+Content-Type: application/json
+
+{
+  "buyerId": "60d5ec49b54df31bb8c5b123",
+  "productId": "60d5ec49b54df31bb8c5b456",
+  "quantityKg": 5.0
+}
+###
+PUT http://localhost:3000/api/reservations?id=RESERVATION_ID_HERE
+Content-Type: application/json
+
+{
+  "status": "fulfilled"
+}
+###
+PUT http://localhost:3000/api/reservations?id=RESERVATION_ID_HERE
+Content-Type: application/json
+
+{
+  "status": "cancelled"
+}
+###
+DELETE http://localhost:3000/api/reservations?id=RESERVATION_ID_HERE
+###
+POST http://localhost:3000/api/reservations
+Content-Type: application/json
+
+{
+  "buyerId": "60d5ec49b54df31bb8c5b123",
+  "productId": "60d5ec49b54df31bb8c5b456",
+  "quantityKg": 999999.0
+}
+###
+POST http://localhost:3000/api/reservations
+Content-Type: application/json
+
+{
+  "buyerId": "60d5ec49b54df31bb8c5b123",
+  "quantityKg": 5.0
+}
