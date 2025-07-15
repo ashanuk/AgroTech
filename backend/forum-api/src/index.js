@@ -49,6 +49,41 @@ async function startServer() {
   await server.start();
   server.applyMiddleware({ app, path: "/graphql", cors: false });
 
+  // File upload endpoint
+  app.post('/upload', upload.single('file'), async (req, res) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: 'No file uploaded' });
+      }
+
+      const file = req.file;
+      
+      // Validate file type
+      if (!file.mimetype.startsWith('image/')) {
+        return res.status(400).json({ error: 'Only image files are allowed' });
+      }
+
+      // Generate unique filename
+      const timestamp = Date.now();
+      const uniqueFilename = `${timestamp}-${file.originalname}`;
+      
+      // Upload to Cloudinary or local storage
+      let imageUrl;
+      if (process.env.CLOUDINARY_CLOUD_NAME) {
+        const { uploadToCloudinary } = require('./middleware/upload');
+        imageUrl = await uploadToCloudinary(file.buffer, uniqueFilename);
+      } else {
+        const { uploadLocally } = require('./middleware/upload');
+        imageUrl = await uploadLocally(file.buffer, uniqueFilename);
+      }
+      
+      res.json({ imageUrl });
+    } catch (error) {
+      console.error('Upload error:', error);
+      res.status(500).json({ error: 'Upload failed: ' + error.message });
+    }
+  });
+
   // Serve static files (for uploaded images)
   app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 

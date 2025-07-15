@@ -133,12 +133,7 @@ const typeDefs = gql`
     deletePost(id: ID!): Boolean!
     likePost(id: ID!): Post!
     unlikePost(id: ID!): Post!
-
-    # File upload
-    uploadImage(file: Upload!): String!
   }
-
-  scalar Upload
 `;
 
 module.exports = typeDefs;

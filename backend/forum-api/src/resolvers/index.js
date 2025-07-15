@@ -4,7 +4,6 @@ const Thread = require("../models/Thread");
 const Post = require("../models/Post");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
-const { uploadToCloudinary, uploadLocally } = require('../middleware/upload');
 
 const resolvers = {
   Query: {
@@ -686,44 +685,6 @@ const resolvers = {
         })),
         reply_count: replies.length,
       };
-    },
-
-    // Image upload
-    uploadImage: async (_, { file }) => {
-      const { createReadStream, filename, mimetype } = await file;
-      
-      // Validate file type
-      if (!mimetype.startsWith('image/')) {
-        throw new Error('Only image files are allowed');
-      }
-
-      try {
-        // Convert stream to buffer
-        const stream = createReadStream();
-        const chunks = [];
-        
-        for await (const chunk of stream) {
-          chunks.push(chunk);
-        }
-        
-        const buffer = Buffer.concat(chunks);
-        
-        // Generate unique filename
-        const timestamp = Date.now();
-        const uniqueFilename = `${timestamp}-${filename}`;
-        
-        // Upload to Cloudinary or local storage
-        let imageUrl;
-        if (process.env.CLOUDINARY_CLOUD_NAME) {
-          imageUrl = await uploadToCloudinary(buffer, uniqueFilename);
-        } else {
-          imageUrl = await uploadLocally(buffer, uniqueFilename);
-        }
-        
-        return imageUrl;
-      } catch (error) {
-        throw new Error(`Image upload failed: ${error.message}`);
-      }
     },
   },
 };
