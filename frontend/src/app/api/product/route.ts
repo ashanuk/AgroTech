@@ -8,10 +8,13 @@ export async function GET(req: NextRequest) {
 
         const url = new URL(req.url);
         const title = url.searchParams.get('title') || '';
+
         const farmerId = url.searchParams.get('farmerId') || '';
+
         const page = parseInt(url.searchParams.get('page') || '1');
         const limit = parseInt(url.searchParams.get('limit') || '10');
         const skip = (page - 1) * limit;
+
 
         let products;
         let total;
@@ -111,6 +114,7 @@ export async function POST(req: NextRequest) {
 
         const data = await req.json();
 
+
         // Validate required fields based on the actual model
         if (!data.title || !data.farmerId || !data.pricePerKg || !data.totalQuantityKg || !data.description || !data.cropType) {
             return NextResponse.json(
@@ -137,6 +141,7 @@ export async function POST(req: NextRequest) {
             { status: 500 }
         );
     }
+
 }
 
 // PUT - Update an existing product
@@ -281,4 +286,3 @@ export async function DELETE(req: NextRequest) {
         );
     }
 }
-
