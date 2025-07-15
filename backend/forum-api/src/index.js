@@ -1,6 +1,7 @@
 const express = require("express");
 const { ApolloServer } = require("apollo-server-express");
 const cors = require("cors");
+const path = require("path");
 require("dotenv").config();
 
 const typeDefs = require("./schema/typeDefs");
@@ -8,6 +9,7 @@ const resolvers = require("./resolvers");
 const connectDB = require("./config/database");
 const { getUser } = require("./middleware/auth");
 const createLoaders = require("./loaders");
+const { upload } = require("./middleware/upload");
 
 async function startServer() {
   // Connect to MongoDB
@@ -46,6 +48,9 @@ async function startServer() {
 
   await server.start();
   server.applyMiddleware({ app, path: "/graphql", cors: false });
+
+  // Serve static files (for uploaded images)
+  app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
   // Health check endpoint
   app.get("/health", (req, res) => {
