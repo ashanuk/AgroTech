@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-  import { useParams } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useQuery, useMutation } from "@apollo/client";
 import {
   ArrowLeft,
@@ -36,6 +36,7 @@ import {
   UNLIKE_POST_MUTATION,
   DELETE_POST_MUTATION,
   GET_ME,
+  UPLOAD_IMAGE_MUTATION,
 } from "@/lib/graphql/queries";
 import { Thread, Post, User } from "@/lib/graphql/types";
 
@@ -235,6 +236,7 @@ export default function ThreadPage() {
   const [likePost] = useMutation(LIKE_POST_MUTATION);
   const [unlikePost] = useMutation(UNLIKE_POST_MUTATION);
   const [deletePost] = useMutation(DELETE_POST_MUTATION);
+  const [uploadImage] = useMutation(UPLOAD_IMAGE_MUTATION);
 
   const thread: Thread | undefined = threadData?.thread;
   const posts: Post[] = postsData?.posts || [];
@@ -252,21 +254,11 @@ export default function ThreadPage() {
 
     setIsUploadingImage(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await fetch('http://localhost:4001/upload', {
-        method: 'POST',
-        body: formData,
+      const result = await uploadImage({
+        variables: { file },
       });
 
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      const result = await response.json();
-      const imageUrl = result.imageUrl;
-      
+      const imageUrl = result.data?.uploadImage;
       if (imageUrl) {
         setImageUrls([...imageUrls, imageUrl]);
       }
