@@ -12,6 +12,28 @@ from typing import List
 
 app = FastAPI()
 
+# CORS headers middleware
+@app.middleware("http")
+async def add_cors_headers(request: Request, call_next):
+    response = await call_next(request)
+    response.headers["Access-Control-Allow-Origin"] = "*"
+    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
+    response.headers["Access-Control-Allow-Headers"] = "*"
+    return response
+
+# Handle preflight OPTIONS requests for chat endpoint
+@app.options("/chat")
+async def chat_preflight():
+    return {
+        "message": "OK"
+    }
+
+@app.options("/chat/clear")
+async def chat_clear_preflight():
+    return {
+        "message": "OK"
+    }
+
 # Initialize crop recommendation system
 crop_system = CropRecommendationSystem()
 
@@ -247,15 +269,63 @@ async def chat(request: Request):
         "messages": [{"role": "user", "content": full_prompt}]
     })
     print(f"Result: {result['messages']}")
-    # Extract the latest AI response
+    
+    # Extract the final AI response (get the last meaningful AI message)
     ai_response = ""
-    for m in result["messages"]:
-        if m.type == "ai" and m.content.strip():
-            ai_response = m.content
-            break
+    
+    # Get all AI messages and find the last one with meaningful content
+    ai_messages = [m for m in result["messages"] if m.type == "ai" and m.content.strip()]
+    
+    if ai_messages:
+        # Get the last AI message with content
+        last_message = ai_messages[-1]
+        ai_response = last_message.content
+        
+        # If the last message is from supervisor and has good content, use it
+        # Otherwise, look for the best response from any expert
+        if not ai_response or len(ai_response.strip()) < 10:
+            # Look for the most substantial response from any AI agent
+            for msg in reversed(ai_messages):
+                if msg.content.strip() and len(msg.content.strip()) > 20:
+                    ai_response = msg.content
+                    break
+    
+    # Fallback if no good response found
+    if not ai_response:
+        ai_response = "I apologize, but I couldn't generate a proper response. Please try rephrasing your question."
 
     # Save to chat history
     chat_turns.append((user_input, ai_response))
 
     return {"reply": ai_response}
+
+@app.delete("/chat/clear")
+async def clear_chat():
+    """
+    Clear the chat history
+    
+    Removes all stored conversation history from the server.
+    This will reset the chat context for future conversations.
+    """
+    global chat_turns
+    chat_turns = []
+    
+    return {
+        "success": True,
+        "message": "Chat history cleared successfully",
+        "chat_turns_count": len(chat_turns)
+    }
+
+@app.get("/chat/history")
+async def get_chat_history():
+    """
+    Get the current chat history
+    
+    Returns the conversation history stored on the server.
+    """
+    return {
+        "success": True,
+        "chat_turns": chat_turns,
+        "total_conversations": len(chat_turns)
+    }
 

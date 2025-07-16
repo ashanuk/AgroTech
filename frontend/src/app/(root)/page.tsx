@@ -1,12 +1,12 @@
+"use client"
+
+import { SessionProvider } from "next-auth/react";
+
 import Image from "next/image";
 import { ChartLineInteractive } from "@/components/rice-price-chart";
-import { auth } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
-export default async function Home() {
-
-  const session = await auth();
-  if (!session) { redirect("/login"); }
+export default function Home() {
 
   return (
     <div className="flex-col">
@@ -19,6 +19,11 @@ export default async function Home() {
       /> */}
       <h1 className="text-2xl font-bold mt-4">Dashboard</h1>
       <ChartLineInteractive />
+      <div>
+        <SessionProvider>
+          <p> Hello </p>
+        </SessionProvider>
+      </div>
     </div>
   );
 }
