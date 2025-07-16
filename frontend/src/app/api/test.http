@@ -1,0 +1,93 @@
+
+### Test Database Connection
+GET http://localhost:3000/api/test-db
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 13:37:34 GMT
+connection: close
+transfer-encoding: chunked
+###
+GET http://localhost:3000/api/crop
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 16:31:19 GMT
+connection: close
+transfer-encoding: chunked
+###
+POST http://localhost:3000/api/crop/by-names
+Content-Type: application/json
+
+{
+  "cropNames": ["orange"]
+}
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 17:40:00 GMT
+connection: close
+transfer-encoding: chunked
+###
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 13:43:35 GMT
+connection: close
+transfer-encoding: chunked
+###
+GET http://localhost:3000/api/crop?limit=5
+###
+GET http://localhost:3000/api/crop?name=rice
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 13:44:03 GMT
+connection: close
+transfer-encoding: chunked
+###
+GET http://localhost:3000/api/crop?name=Rice&exact=true
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 13:45:30 GMT
+connection: close
+transfer-encoding: chunked
+###
+GET http://localhost:3000/api/crop?type=cereal
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 13:45:36 GMT
+connection: close
+transfer-encoding: chunked
+###
+GET http://localhost:3000/api/crop?name=NonExistentCrop&exact=true
+###
+POST http://localhost:8000/chat
+Content-Type: application/json
+
+{
+  "message": "What are the best crops for sandy soil with low rainfall?"
+}
+###
+POST http://localhost:8000/recommend-crop
+Content-Type: application/json
+
+{
+  "N": 90,
+  "P": 42,
+  "K": 43,
+  "temperature": 20.87,
+  "humidity": 82.00,
+  "ph": 6.50,
+  "rainfall": 202.93
+}
+

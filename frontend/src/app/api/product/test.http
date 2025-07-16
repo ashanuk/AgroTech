@@ -1,0 +1,150 @@
+### Get All Products (Default - First 10)
+GET http://localhost:3000/api/product
+###
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 17:10:19 GMT
+connection: close
+transfer-encoding: chunked
+###
+GET http://localhost:3000/api/test-db
+###
+GET http://localhost:3000/api/product?title=carrot
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Wed, 16 Jul 2025 02:54:25 GMT
+connection: close
+transfer-encoding: chunked
+###
+GET http://localhost:3000/api/product?farmerId=686ba0c3c7c62ce35d4f8b72
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Wed, 16 Jul 2025 03:09:03 GMT
+connection: close
+transfer-encoding: chunked
+###
+GET http://localhost:3000/api/product?title=tomato
+###
+GET http://localhost:3000/api/product?limit=3
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 17:12:38 GMT
+connection: close
+transfer-encoding: chunked
+###
+POST http://localhost:3000/api/product
+Content-Type: application/json
+
+{
+  "title": "Tomatoes",
+  "farmerId": "686ba0c3c7c62ce35d4f8b72",
+  "description": "Fresh organic tomatoes grown without pesticides",
+  "cropType": "vegetable",
+  "pricePerKg": 150.00,
+  "totalQuantityKg": 1000,
+  "availableQuantityKg": 1000,
+  "unit": "kg",
+  "images": ["tomato1.jpg", "tomato2.jpg"],
+  "location": ""
+}
+
+HTTP/1.1 201  - Created
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 18:27:13 GMT
+connection: close
+transfer-encoding: chunked
+###
+POST http://localhost:3000/api/product
+Content-Type: application/json
+
+{
+  "title": "Fresh Rice",
+  "farmerId": "60d5ec49b54df31bb8c5b456",
+  "description": "High quality rice from local farms",
+  "cropType": "grain",
+  "pricePerKg": 120.00,
+  "totalQuantityKg": 500,
+  "availableQuantityKg": 500
+}
+###
+POST http://localhost:3000/api/product
+Content-Type: application/json
+
+{
+  "title": "Incomplete Product",
+  "description": "This should fail due to missing required fields"
+}
+###
+GET http://localhost:3000/api/product?title=nonexistentproduct
+###
+PUT http://localhost:3000/api/product?id=68754c00300b8690d49f2e57
+Content-Type: application/json
+
+{
+  "pricePerKg": 180.00
+}
+###
+PUT http://localhost:3000/api/product?id=68754c00300b8690d49f2e57
+Content-Type: application/json
+
+{
+  "title": "Premium Organic Tomatoes",
+  "description": "Fresh organic tomatoes grown without pesticides - Premium Quality",
+  "pricePerKg": 200.00,
+  "availableQuantityKg": 750
+}
+###
+PUT http://localhost:3000/api/product?id=68754c00300b8690d49f2e57
+Content-Type: application/json
+
+{
+  "totalQuantityKg": 1200,
+  "availableQuantityKg": 900
+}
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 18:33:48 GMT
+connection: close
+transfer-encoding: chunked
+###
+PUT http://localhost:3000/api/product?id=68754c00300b8690d49f2e57
+Content-Type: application/json
+
+{
+  "totalQuantityKg": 500,
+  "availableQuantityKg": 600
+}
+###
+PUT http://localhost:3000/api/product?id=invalidproductid123
+Content-Type: application/json
+
+{
+  "pricePerKg": 100.00
+}
+###
+PUT http://localhost:3000/api/product
+Content-Type: application/json
+
+{
+  "pricePerKg": 100.00
+}
+###
+DELETE http://localhost:3000/api/product?id=68754c00300b8690d49f2e57
+
+HTTP/1.1 200  - OK
+vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
+content-type: application/json
+date: Mon, 14 Jul 2025 18:37:28 GMT
+connection: close
+transfer-encoding: chunked

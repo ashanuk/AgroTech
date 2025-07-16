@@ -2,6 +2,8 @@ import numpy as np
 import joblib
 from app.config import MODEL_PATH, SCALER_PATH
 import requests
+from app.crop_recommendation import CropRecommendationSystem
+crop_system = CropRecommendationSystem()
 
 def create_sequences(values, lookback=15):
     X, y = [], []
@@ -16,6 +18,7 @@ def save_model_artifacts(model, scaler):
 
 
 from langchain_community.tools import DuckDuckGoSearchRun
+from tavily import TavilyClient
 
 def add(a, b):
     """
@@ -45,16 +48,22 @@ def multiply(a, b):
 
 def search_ddgo(query):
     """
-    Perform a web search using DuckDuckGo.
+    Perform a web search using Tavily AI.
 
     Args:
         query (str): The search query string.
 
     Returns:
-        str: Top search result from DuckDuckGo.
+        str: Search results from Tavily AI.
     """
-    search = DuckDuckGoSearchRun()
-    return search.invoke(query)
+    try:
+        tavily_client = TavilyClient(api_key="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")  # Replace with your actual API key
+        response = tavily_client.search(query)
+        return str(response)
+    except Exception as e:
+        # Fallback to DuckDuckGo if Tavily fails
+        search = DuckDuckGoSearchRun()
+        return search.invoke(query)
 
 # Example usage
 # print(search_ddgo("what is quantum computing"))
@@ -285,6 +294,41 @@ def get_day_summary_paid_api(lat, lon, date_str):
             return "Error: Unauthorized. This API requires a paid OpenWeatherMap subscription."
         return f"Error {response.status_code}: {response.text}"
 
+
+
+def get_suitable_crops_only(location: str, use_defaults: bool = True):
+    """
+    Get suitable crops with probabilities for a location (returns crops with >70% probability)
+    
+    Input:
+        - location (str): City/area name (e.g., "Mumbai, India")
+        - use_defaults (bool): Whether to use default parameters or not
+    
+    Output:
+        - List of crops with probabilities [{"crop": "rice", "probability": 0.85}, ...] or []
+
+    Raises:
+        - ValueError: If crop recommendation fails or an unexpected error occurs
+    """
+    try:
+        result = crop_system.get_crop_recommendations(
+            location=location,
+            use_defaults=use_defaults
+        )
+
+        if not result['success']:
+            raise ValueError(f"Crop recommendation failed: {result['error']}")
+
+        suitable_crops = [
+            {'crop': rec['crop']}
+            for rec in result['recommendations']
+            if rec.get('suitability') == 'suitable'
+        ]
+
+        return suitable_crops
+
+    except Exception as e:
+        raise ValueError(f"Error getting suitable crops: {str(e)}")
 
 
 
