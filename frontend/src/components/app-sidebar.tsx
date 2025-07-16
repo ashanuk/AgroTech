@@ -79,7 +79,7 @@ const marketIntelligentItems = [
 const communityItems = [
   {
     title: "Farmer Forum",
-    url: "#",
+    url: "/community/forum",
     icon: Home,
   },
   {
