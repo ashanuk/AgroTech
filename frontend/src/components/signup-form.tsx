@@ -75,7 +75,7 @@ export function SignupForm({
               id="name"
               type="text"
               disabled={pending}
-              placeholder="ABBC Perera"
+              placeholder="ABC Perera"
               value={form.name}
               onChange={(e) => setForm({...form, name:e.target.value})}
               required />
