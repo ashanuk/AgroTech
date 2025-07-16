@@ -555,7 +555,7 @@ export default function CropPlanningPage() {
         </div>
       )}
 
-      {/* Crops Grid */}
+      {/* Crops Grid - Updated with Planting and Harvest Time */}
       {!isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCrops.length > 0 ? (
@@ -565,43 +565,30 @@ export default function CropPlanningPage() {
                 className="cursor-pointer hover:shadow-lg transition-shadow"
                 onClick={() => handleCropSelect(crop)}
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {getImageDisplay(crop)}
-                      <div>
-                        <CardTitle className="text-lg">{crop.name}</CardTitle>
-                        <Badge variant={getSuitabilityBadge(crop.suitability)} className="text-xs mt-1">
-                          {crop.suitability}% Suitable
-                        </Badge>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-3">
+                    {getImageDisplay(crop)}
+                    <CardTitle className="text-lg">{crop.name}</CardTitle>
                   </div>
                 </CardHeader>
+                
                 <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground line-clamp-2">{crop.description}</p>
+                  {/* Reduced Description */}
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {crop.description}
+                  </p>
                   
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  {/* Planting and Harvest Time */}
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-chart-3" />
-                      <span className="text-muted-foreground">Plant:</span>
-                      <span className="font-medium text-xs">{crop.plantingTime}</span>
+                      <Calendar className="h-4 w-4 text-green-600" />
+                      <span className="text-muted-foreground text-sm">Planting:</span>
+                      <span className="font-medium text-sm">{crop.plantingTime}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-chart-4" />
-                      <span className="text-muted-foreground">Harvest:</span>
-                      <span className="font-medium text-xs">{getHarvestTimeDisplay(crop.harvestTime)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Droplets className="h-4 w-4 text-chart-2" />
-                      <span className="text-muted-foreground">Water:</span>
-                      <span className="font-medium text-xs">{crop.waterRequirement}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Thermometer className="h-4 w-4 text-chart-1" />
-                      <span className="text-muted-foreground">Temp:</span>
-                      <span className="font-medium text-xs">{getTemperatureDisplay(crop)}</span>
+                      <Clock className="h-4 w-4 text-orange-600" />
+                      <span className="text-muted-foreground text-sm">Harvest:</span>
+                      <span className="font-medium text-sm">{getHarvestTimeDisplay(crop.harvestTime)}</span>
                     </div>
                   </div>
                 </CardContent>
