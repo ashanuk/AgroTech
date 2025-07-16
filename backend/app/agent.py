@@ -58,12 +58,14 @@ work_flow = create_supervisor(
     [research_agent,math_agent,weather_agent,weather_future_agent,crop_expert],
     model=model,
     prompt=(
+        
         'You are a team supervisor managing a reasearch expert and a math eapert.'
         'if crop expert or weather expert do not know the answer use search_expert. '
         'For math problems , use math_agent.'
         'For weather problems, use weather_agent.'
         'For weather problems if future in 5 days, use weather_future_tool.'
         'For crop recommendations, use crop_expert. if crop_expert does not know the answer, use search_expert.'
+        'Then extract the answer from the expert and return it to the user.'
     )
 )
 
