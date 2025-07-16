@@ -3,10 +3,20 @@ from langgraph_supervisor import create_supervisor
 from langgraph.prebuilt import create_react_agent
 
 from app.utils import add, multiply, search_ddgo, get_weather, predict_weather_for_date,get_suitable_crops_only
+import os
 
+# Try to load environment variables from .env file
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    print("python-dotenv not installed. Install with: pip install python-dotenv")
+
+GEMINIAPI = os.getenv("GEMINIAPI") or "AIzaSyCS-sWncoWhnh9cI0HdRQc56zQ35E0kgUM"  # Fallback to hardcoded key
+# print("GEMINI_API:", GEMINIAPI)  # Debugging line to check if the API key is loaded correctly
 model = ChatGoogleGenerativeAI(
     model="gemini-2.0-flash",
-    google_api_key="AIzaSyCS-sWncoWhnh9cI0HdRQc56zQ35E0kgUM",
+    google_api_key=GEMINIAPI,
     temperature=0.7
 )
 
