@@ -7,7 +7,7 @@ export interface ILocation {
 }
 
 export interface IProduct extends Document {
-  farmerId: Schema.Types.ObjectId | IUser; // reference to User
+  farmerId: Schema.Types.ObjectId | string; // reference to User
   title: string; // e.g., "Red Bananas"
   description: string;
   cropType: string; // e.g., "vegetable", "fruit", "grain"

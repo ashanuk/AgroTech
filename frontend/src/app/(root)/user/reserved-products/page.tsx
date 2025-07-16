@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { PackageCheck, XCircle, History, DollarSign, Filter, MessageSquare, Star } from "lucide-react";
+import { PackageCheck, XCircle, History, DollarSign, Filter, MessageSquare, Star, Loader2 } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,6 +21,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import { useSession } from "next-auth/react";
 
 // Combined type for reservation with product details
 type ReservedProduct = {
@@ -124,15 +125,66 @@ const getStatusStyles = (status: ReservedProduct['status']) => {
 };
 
 export default function ReservedProductsPage() {
-  const [reservations, setReservations] = useState(dummyReservations);
+  const { data: session, status: sessionStatus } = useSession();
+  const [reservations, setReservations] = useState<ReservedProduct[]>([]);
   const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleCancelReservation = (reservationId: string) => {
-    setReservations(prev =>
-      prev.map(res =>
-        res._id === reservationId ? { ...res, status: "cancelled" } : res
-      )
-    );
+  useEffect(() => {
+    const fetchReservations = async () => {
+      if (sessionStatus === 'authenticated' && session?.user?.id) {
+        try {
+          setLoading(true);
+          const response = await fetch(`/api/reservations?buyerId=${session.user.id}`);
+          if (!response.ok) {
+            throw new Error('Failed to fetch reservations');
+          }
+          const data = await response.json();
+          // Convert date strings to Date objects
+          const formattedReservations = data.data.map((res: any) => ({
+            ...res,
+            reservedAt: new Date(res.reservedAt),
+            fulfilledAt: res.fulfilledAt ? new Date(res.fulfilledAt) : undefined,
+          }));
+          setReservations(formattedReservations);
+          setError(null);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'An unknown error occurred');
+        } finally {
+          setLoading(false);
+        }
+      } else if (sessionStatus === 'unauthenticated') {
+        // Handle case where user is not logged in
+        setLoading(false);
+        setError("Please log in to see your reservations.");
+      }
+    };
+
+    fetchReservations();
+  }, [session, sessionStatus]);
+
+  const handleCancelReservation = async (reservationId: string) => {
+    try {
+      const response = await fetch(`/api/reservations?id=${reservationId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'cancelled' }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to cancel reservation');
+      }
+
+      setReservations(prev =>
+        prev.map(res =>
+          res._id === reservationId ? { ...res, status: "cancelled" } : res
+        )
+      );
+    } catch (error) {
+      console.error("Error cancelling reservation:", error);
+      // Optionally, show an error toast to the user
+    }
   };
 
   const filteredReservations = reservations.filter(res =>
@@ -143,6 +195,23 @@ export default function ReservedProductsPage() {
   const totalSpent = reservations
     .filter(r => r.status === 'fulfilled')
     .reduce((sum, r) => sum + r.quantityKg * r.product.pricePerKg, 0);
+
+  if (sessionStatus === 'loading' || loading) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <p className="text-red-500">{error}</p>
+      </div>
+    );
+  }
+
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -274,9 +343,9 @@ export default function ReservedProductsPage() {
                     </AlertDialog>
                   )}
                   {reservation.status === "fulfilled" && (
-                     <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                        <Star className="mr-2 h-4 w-4" />
-                        Leave a Review
+                    <Button variant="outline" size="sm" className="w-full sm:w-auto">
+                      <Star className="mr-2 h-4 w-4" />
+                      Leave a Review
                     </Button>
                   )}
                 </Card>
@@ -284,7 +353,9 @@ export default function ReservedProductsPage() {
             })
           ) : (
             <div className="text-center py-10 border-2 border-dashed border-border rounded-lg">
-              <p className="text-muted-foreground">No reservations found for this status.</p>
+              <p className="text-muted-foreground">
+                {filter === 'all' ? 'You have no reservations.' : `No reservations found for status: ${filter}.`}
+              </p>
             </div>
           )}
         </CardContent>
