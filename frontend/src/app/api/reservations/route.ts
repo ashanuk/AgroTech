@@ -22,15 +22,12 @@ const ensureModelsRegistered = () => {
 // GET all reservations or search reservations by query parameters
 export async function GET(request: NextRequest) {
   try {
-    // Connect to MongoDB using Mongoose
     await connectToDatabase();
-    
-    // Ensure all models are registered
     ensureModelsRegistered();
     
-    // Get search parameters
     const { searchParams } = new URL(request.url);
     const buyerId = searchParams.get('buyerId');
+    const farmerId = searchParams.get('farmerId'); // Add this
     const productId = searchParams.get('productId');
     const status = searchParams.get('status');
     const limit = parseInt(searchParams.get('limit') || '50');
@@ -51,41 +48,178 @@ export async function GET(request: NextRequest) {
       query.status = status;
     }
     
-    // Calculate skip for pagination
     const skip = (page - 1) * limit;
     
-    // Execute query with pagination and populate references with full product details
-    const reservations = await Reservation.find(query)
-      .populate('buyerId', 'name email phone role address')
-      .populate({
-        path: 'productId',
-        select: 'title description cropType pricePerKg totalQuantityKg availableQuantityKg unit images address location farmerId createdAt updatedAt',
-        populate: {
-          path: 'farmerId',
-          select: 'name email phone address'
+    let reservations;
+    
+    if (farmerId) {
+      // If farmerId is provided, we need to find reservations for products owned by this farmer
+      reservations = await Reservation.aggregate([
+        {
+          $lookup: {
+            from: 'products',
+            localField: 'productId',
+            foreignField: '_id',
+            as: 'productDetails'
+          }
+        },
+        {
+          $unwind: '$productDetails'
+        },
+        {
+          $match: {
+            'productDetails.farmerId': new mongoose.Types.ObjectId(farmerId),
+            ...(status && { status })
+          }
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'buyerId',
+            foreignField: '_id',
+            as: 'buyerDetails'
+          }
+        },
+        {
+          $unwind: '$buyerDetails'
+        },
+        {
+          $lookup: {
+            from: 'users',
+            localField: 'productDetails.farmerId',
+            foreignField: '_id',
+            as: 'farmerDetails'
+          }
+        },
+        {
+          $unwind: '$farmerDetails'
+        },
+        {
+          $addFields: {
+            totalPrice: { $multiply: ['$quantityKg', '$productDetails.pricePerKg'] }
+          }
+        },
+        {
+          $project: {
+            _id: 1,
+            buyerId: {
+              _id: '$buyerDetails._id',
+              name: '$buyerDetails.name',
+              email: '$buyerDetails.email',
+              phone: '$buyerDetails.phone',
+              address: '$buyerDetails.address'
+            },
+            productId: {
+              _id: '$productDetails._id',
+              title: '$productDetails.title',
+              description: '$productDetails.description',
+              cropType: '$productDetails.cropType',
+              pricePerKg: '$productDetails.pricePerKg',
+              totalQuantityKg: '$productDetails.totalQuantityKg',
+              availableQuantityKg: '$productDetails.availableQuantityKg',
+              unit: '$productDetails.unit',
+              images: '$productDetails.images',
+              address: '$productDetails.address',
+              location: '$productDetails.location',
+              farmerId: {
+                _id: '$farmerDetails._id',
+                name: '$farmerDetails.name',
+                email: '$farmerDetails.email',
+                phone: '$farmerDetails.phone',
+                address: '$farmerDetails.address'
+              }
+            },
+            quantityKg: 1,
+            status: 1,
+            reservedAt: 1,
+            fulfilledAt: 1,
+            totalPrice: 1
+          }
+        },
+        {
+          $sort: { reservedAt: -1 }
+        },
+        {
+          $skip: skip
+        },
+        {
+          $limit: limit
         }
-      })
-      .sort({ reservedAt: -1 })
-      .skip(skip)
-      .limit(limit)
-      .lean();
-    
-    // Get total count for pagination info
-    const totalCount = await Reservation.countDocuments(query);
-    const totalPages = Math.ceil(totalCount / limit);
-    
-    return NextResponse.json({
-      status: 'success',
-      data: reservations,
-      pagination: {
-        currentPage: page,
-        totalPages,
-        totalCount,
-        hasNextPage: page < totalPages,
-        hasPrevPage: page > 1
-      },
-      message: `Found ${reservations.length} reservations`
-    });
+      ]);
+      
+      // Get total count for farmer's orders
+      const countPipeline = [
+        {
+          $lookup: {
+            from: 'products',
+            localField: 'productId',
+            foreignField: '_id',
+            as: 'productDetails'
+          }
+        },
+        {
+          $unwind: '$productDetails'
+        },
+        {
+          $match: {
+            'productDetails.farmerId': new mongoose.Types.ObjectId(farmerId),
+            ...(status && { status })
+          }
+        },
+        {
+          $count: 'total'
+        }
+      ];
+      
+      const countResult = await Reservation.aggregate(countPipeline);
+      const totalCount = countResult.length > 0 ? countResult[0].total : 0;
+      const totalPages = Math.ceil(totalCount / limit);
+      
+      return NextResponse.json({
+        status: 'success',
+        data: reservations,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalCount,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
+        },
+        message: `Found ${reservations.length} orders for farmer`
+      });
+    } else {
+      // Original logic for other cases
+      reservations = await Reservation.find(query)
+        .populate('buyerId', 'name email phone role address')
+        .populate({
+          path: 'productId',
+          select: 'title description cropType pricePerKg totalQuantityKg availableQuantityKg unit images address location farmerId createdAt updatedAt',
+          populate: {
+            path: 'farmerId',
+            select: 'name email phone address'
+          }
+        })
+        .sort({ reservedAt: -1 })
+        .skip(skip)
+        .limit(limit)
+        .lean();
+      
+      const totalCount = await Reservation.countDocuments(query);
+      const totalPages = Math.ceil(totalCount / limit);
+      
+      return NextResponse.json({
+        status: 'success',
+        data: reservations,
+        pagination: {
+          currentPage: page,
+          totalPages,
+          totalCount,
+          hasNextPage: page < totalPages,
+          hasPrevPage: page > 1
+        },
+        message: `Found ${reservations.length} reservations`
+      });
+    }
   } catch (error) {
     console.error('Error fetching reservations:', error);
     return NextResponse.json(
