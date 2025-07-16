@@ -13,16 +13,14 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-
-  SidebarFooter,
-} from "@/components/ui/sidebar";
-
-import { ModeToggle } from "./mode-toggle";
-import { auth, signOut } from "@/lib/auth";
+  SidebarFooter
+} from "@/components/ui/sidebar"
 import { useRouter } from "next/navigation"
 import { signOut } from "next-auth/react"
 import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/ui/skeleton";
+
+import { ModeToggle } from "./mode-toggle"
 
 const smartCropManagementItems = [
   {
@@ -40,7 +38,7 @@ const smartCropManagementItems = [
     url: "#",
     icon: Calendar,
   },
-];
+]
 
 const resourceOptimizationItems = [
   {
@@ -58,7 +56,7 @@ const resourceOptimizationItems = [
     url: "#",
     icon: Calendar,
   },
-];
+]
 
 const marketIntelligentItems = [
   {
@@ -76,12 +74,12 @@ const marketIntelligentItems = [
     url: "#",
     icon: Calendar,
   },
-];
+]
 
 const communityItems = [
   {
     title: "Farmer Forum",
-    url: "/community/forum",
+    url: "#",
     icon: Home,
   },
   {
@@ -94,8 +92,7 @@ const communityItems = [
     url: "#",
     icon: Calendar,
   },
-];
-
+]
 
 export function AppSidebar() {
 
@@ -118,7 +115,6 @@ export function AppSidebar() {
   // }
 
   const handleSignout = async () => {
-
     await signOut({ redirect: false });
     router.push("/login");
   }
@@ -243,6 +239,7 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
       </SidebarContent>
 
       <SidebarFooter>
@@ -252,5 +249,5 @@ export function AppSidebar() {
         </div>
       </SidebarFooter>
     </Sidebar>
-  );
+  )
 }
