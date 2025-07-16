@@ -363,6 +363,93 @@ export default function CropPlanningPage() {
     return 'Available Crops'
   }
 
+  // Add these functions after your existing helper functions
+  const getFertilizerDisplay = (fertilizerSchedule: any): React.ReactNode => {
+    if (!fertilizerSchedule || typeof fertilizerSchedule !== 'object') {
+      return <span className="text-muted-foreground">No fertilizer schedule available</span>;
+    }
+
+    // Check if it has regional variations (like upcountry)
+    const hasRegionalVariations = Object.keys(fertilizerSchedule).some(key => 
+      typeof fertilizerSchedule[key] === 'object' && 
+      fertilizerSchedule[key].basal !== undefined
+    );
+
+    if (hasRegionalVariations) {
+      // Handle structure with regional variations (upcountry, lowcountry, etc.)
+      return (
+        <div className="space-y-4">
+          {Object.entries(fertilizerSchedule).map(([region, schedule]: [string, any]) => (
+            <div key={region} className="border rounded-lg p-3">
+              <h5 className="font-medium text-sm mb-3 capitalize text-primary">
+                {region.replace(/([A-Z])/g, ' $1').trim()} Region
+              </h5>
+              {renderFertilizerTimeline(schedule)}
+            </div>
+          ))}
+        </div>
+      );
+    } else {
+      // Handle simple structure without regional variations
+      return renderFertilizerTimeline(fertilizerSchedule);
+    }
+  };
+
+  const renderFertilizerTimeline = (schedule: any): React.ReactNode => {
+    if (!schedule || typeof schedule !== 'object') {
+      return <span className="text-muted-foreground">No schedule data</span>;
+    }
+
+    const timelineStages = Object.entries(schedule).map(([stage, fertilizers]: [string, any]) => {
+      if (typeof fertilizers !== 'object') return null;
+
+      return (
+        <div key={stage} className="mb-3">
+          <div className="font-medium text-xs text-muted-foreground mb-2 capitalize">
+            {stage.replace(/([A-Z])/g, ' $1').replace(/(\d+)/g, ' $1').trim()}
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            {Object.entries(fertilizers).map(([fertilizer, amount]: [string, any]) => (
+              <div key={fertilizer} className="flex justify-between items-center bg-muted/50 px-2 py-1 rounded text-xs">
+                <span className="font-medium uppercase">{fertilizer}:</span>
+                <span>{String(amount)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }).filter(Boolean);
+
+    return (
+      <div className="space-y-2">
+        {timelineStages.length > 0 ? timelineStages : (
+          <span className="text-muted-foreground text-xs">No fertilizer data available</span>
+        )}
+      </div>
+    );
+  };
+
+  // Compact version for card display
+  const getFertilizerSummary = (fertilizerSchedule: any): string => {
+    if (!fertilizerSchedule || typeof fertilizerSchedule !== 'object') {
+      return 'No fertilizer info';
+    }
+
+    // Check if it has regional variations
+    const hasRegionalVariations = Object.keys(fertilizerSchedule).some(key => 
+      typeof fertilizerSchedule[key] === 'object' && 
+      fertilizerSchedule[key].basal !== undefined
+    );
+
+    if (hasRegionalVariations) {
+      const regions = Object.keys(fertilizerSchedule);
+      return `${regions.length} region(s) with schedule`;
+    } else {
+      const stages = Object.keys(fertilizerSchedule);
+      return `${stages.length} application stages`;
+    }
+  };
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -674,44 +761,93 @@ export default function CropPlanningPage() {
                       
                       {selectedCrop.detailedInstructions.soilPreparation && (
                         <div>
-                          <h4 className="font-medium text-primary mb-2">Soil Preparation</h4>
-                          <p className="text-sm text-muted-foreground">{selectedCrop.detailedInstructions.soilPreparation}</p>
+                          <h4 className="font-medium text-primary mb-2 text-sm flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              🌱
+                              <span>Soil Preparation</span>
+                            </div>
+                          </h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {selectedCrop.detailedInstructions.soilPreparation}
+                          </p>
                         </div>
                       )}
 
                       {selectedCrop.detailedInstructions.planting && (
                         <div>
-                          <h4 className="font-medium text-primary mb-2">Planting</h4>
-                          <p className="text-sm text-muted-foreground">{selectedCrop.detailedInstructions.planting}</p>
+                          <h4 className="font-medium text-primary mb-2 text-sm flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              🌿
+                              <span>Planting</span>
+                            </div>
+                          </h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {selectedCrop.detailedInstructions.planting}
+                          </p>
                         </div>
                       )}
 
                       {selectedCrop.detailedInstructions.care && (
                         <div>
-                          <h4 className="font-medium text-primary mb-2">Care & Maintenance</h4>
-                          <p className="text-sm text-muted-foreground">{selectedCrop.detailedInstructions.care}</p>
+                          <h4 className="font-medium text-primary mb-2 text-sm flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              🚿
+                              <span>Care & Maintenance</span>
+                            </div>
+                          </h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {selectedCrop.detailedInstructions.care}
+                          </p>
                         </div>
                       )}
 
                       {selectedCrop.detailedInstructions.pests && (
                         <div>
-                          <h4 className="font-medium text-primary mb-2">Pest Management</h4>
+                          <h4 className="font-medium text-primary mb-2 text-sm flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              🛡️
+                              <span>Pest Management</span>
+                            </div>
+                          </h4>
                           {Array.isArray(selectedCrop.detailedInstructions.pests) ? (
-                            <ul className="text-sm text-muted-foreground list-disc list-inside">
+                            <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
                               {selectedCrop.detailedInstructions.pests.map((pest: string, index: number) => (
-                                <li key={index}>{pest}</li>
+                                <li key={index} className="leading-relaxed">{pest}</li>
                               ))}
                             </ul>
                           ) : (
-                            <p className="text-sm text-muted-foreground">{selectedCrop.detailedInstructions.pests}</p>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {selectedCrop.detailedInstructions.pests}
+                            </p>
                           )}
                         </div>
                       )}
 
+                      {selectedCrop.detailedInstructions.fertilizerSchedule && (
+                         <>
+                      <div>
+                        <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                          <Leaf className="h-5 w-5 text-green-600" />
+                          Fertilizer Schedule
+                        </h4>
+                        <div className="bg-muted/30 p-4 rounded-lg">
+                          {getFertilizerDisplay(selectedCrop.detailedInstructions.fertilizerSchedule)}
+                        </div>
+                      </div>
+                      <Separator />
+                    </>)}
+
                       {selectedCrop.detailedInstructions.harvest && (
                         <div>
-                          <h4 className="font-medium text-primary mb-2">Harvesting</h4>
-                          <p className="text-sm text-muted-foreground">{selectedCrop.detailedInstructions.harvest}</p>
+                          <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              🌾
+                              <span>Harvesting</span>
+                            </div>
+                          </h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {selectedCrop.detailedInstructions.harvest}
+                          </p>
                         </div>
                       )}
                     </div>
