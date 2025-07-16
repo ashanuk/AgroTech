@@ -38,6 +38,7 @@ import {
   GET_ME,
 } from "@/lib/graphql/queries";
 import { Thread, Post, User } from "@/lib/graphql/types";
+import Image from 'next/image';
 
 function formatDistanceToNow(date: Date): string {
   const now = new Date();
@@ -548,10 +549,13 @@ export default function ThreadPage() {
                         key={index}
                         className="flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded"
                       >
-                        <img
+                        <Image
                           src={url}
                           alt={`Preview ${index + 1}`}
                           className="w-12 h-12 object-cover rounded"
+                          width={48}
+                          height={48}
+
                         />
                         <span className="flex-1 text-sm truncate">{url}</span>
                         <Button
