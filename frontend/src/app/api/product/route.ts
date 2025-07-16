@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
                 },
                 // Add farmerId filter if provided
                 ...(farmerId ? [{ $match: { farmerId: farmerId } }] : []),
-                { $project: { _id: 1, title: 1, pricePerKg: 1, availableQuantityKg: 1, description: 1, cropType: 1, farmerId: 1 } },
+                // Return all fields - remove $project to get complete product data
                 { $skip: skip },
                 { $limit: limit }
             ];
@@ -66,7 +66,6 @@ export async function GET(req: NextRequest) {
         } else if (farmerId.trim()) {
             // Filter by farmer ID only when no title search
             products = await Product.find({ farmerId: farmerId })
-                .select('_id title pricePerKg availableQuantityKg description cropType farmerId')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)
@@ -76,7 +75,6 @@ export async function GET(req: NextRequest) {
         } else {
             // Regular query when no search title or farmerId is provided
             products = await Product.find({})
-                .select('_id title pricePerKg availableQuantityKg description cropType farmerId')
                 .sort({ createdAt: -1 })
                 .skip(skip)
                 .limit(limit)

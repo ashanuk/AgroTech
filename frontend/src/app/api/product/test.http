@@ -16,7 +16,7 @@ GET http://localhost:3000/api/product?title=carrot
 HTTP/1.1 200  - OK
 vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
 content-type: application/json
-date: Mon, 14 Jul 2025 17:12:04 GMT
+date: Wed, 16 Jul 2025 02:54:25 GMT
 connection: close
 transfer-encoding: chunked
 ###
@@ -25,7 +25,7 @@ GET http://localhost:3000/api/product?farmerId=686ba0c3c7c62ce35d4f8b72
 HTTP/1.1 200  - OK
 vary: RSC, Next-Router-State-Tree, Next-Router-Prefetch, Next-Router-Segment-Prefetch
 content-type: application/json
-date: Mon, 14 Jul 2025 18:21:55 GMT
+date: Wed, 16 Jul 2025 03:09:03 GMT
 connection: close
 transfer-encoding: chunked
 ###
