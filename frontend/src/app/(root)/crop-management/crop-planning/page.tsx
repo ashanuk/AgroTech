@@ -640,8 +640,8 @@ export default function CropPlanningPage() {
                 </SheetDescription>
               </SheetHeader>
 
-              <ScrollArea className="h-[calc(100vh-200px)] mt-6 p-4">
-                <div className="space-y-6">
+              <ScrollArea className="h-[calc(100vh-200px)]  p-10">
+                <div className="space-y-6 ">
                   {/* Basic Information */}
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Basic Information</h3>
