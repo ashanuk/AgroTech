@@ -3,8 +3,10 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "../globals.css";
 
 import { ThemeProvider } from "@/components/theme-provider";
+import GraphQLProvider from "@/providers/GraphQLProvider";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+
 import { Toaster } from "@/components/ui/sonner";
 import Providers from "@/components/providers";
 import { auth } from "@/lib/auth";
@@ -47,7 +49,12 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
+
           <Providers>
+
+
+        <GraphQLProvider>
+
           <SidebarProvider>
             <AppSidebar />
             <SidebarTrigger />
@@ -57,7 +64,11 @@ export default async function RootLayout({
             </main>
 
           </SidebarProvider>
+
+
+            </GraphQLProvider>
           </Providers>
+
         </ThemeProvider>
       </body>
     </html>
