@@ -75,28 +75,37 @@ export default function CropPlanningPage() {
       setIsLoading(true)
       setError(null) // Clear any previous errors
       
-      
+      console.log('🔄 Starting to fetch crops...')
       const response = await fetch('/api/crop') // Change from '/api/crop' to '/api/crops'
       
-      
+      console.log('📡 Response status:', response.status)
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       
       const data = await response.json()
-      
+      console.log('📊 Raw API Response:', data)
       
       // Check for 'status' instead of 'success'
       if (data.status === 'success' && Array.isArray(data.data)) {
+        console.log('✅ Setting crops:', data.data.length, 'items')
         
-        setCrops(data.data)
-        setAllCrops(data.data) // Store all crops for search
-       
+        // Helper function to get random crops
+        const getRandomCrops = (cropsArray: ICrop[], count: number = 10): ICrop[] => {
+          const shuffled = [...cropsArray].sort(() => 0.5 - Math.random())
+          return shuffled.slice(0, count)
+        }
+        
+        const randomCrops = getRandomCrops(data.data, 10)
+        console.log('🎲 Selected random crops:', randomCrops.length, 'items')
+        
+        setCrops(randomCrops) // Set random 10 crops for display
+        setAllCrops(data.data) // Store all crops for search functionality
         
         // Log first crop for structure inspection
-        if (data.data.length > 0) {
-          
+        if (randomCrops.length > 0) {
+          console.log('📋 Sample crop structure:', randomCrops[0])
         }
       } else {
         console.error('❌ API Response structure issue:', {
@@ -351,7 +360,7 @@ export default function CropPlanningPage() {
     if (searchPerformed) {
       return 'Recommended Crops'
     }
-    return 'All Available Crops'
+    return 'Available Crops'
   }
 
   return (
@@ -497,11 +506,7 @@ export default function CropPlanningPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">
           {getResultsTitle()}
-          {filteredCrops.length > 0 && (
-            <span className="text-lg font-normal text-muted-foreground ml-2">
-              ({filteredCrops.length} found)
-            </span>
-          )}
+          
         </h2>
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
