@@ -59,7 +59,7 @@ export async function GET(request: NextRequest) {
       .populate('buyerId', 'name email phone role address')
       .populate({
         path: 'productId',
-        select: 'title description cropType pricePerKg totalQuantityKg availableQuantityKg unit images location farmerId createdAt updatedAt',
+        select: 'title description cropType pricePerKg totalQuantityKg availableQuantityKg unit images address location farmerId createdAt updatedAt',
         populate: {
           path: 'farmerId',
           select: 'name email phone address'

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PackageCheck, XCircle, History, DollarSign, Filter, MessageSquare, Star, Loader2 } from "lucide-react";
+import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,93 +24,40 @@ import {
 } from "@/components/ui/alert-dialog";
 import { useSession } from "next-auth/react";
 
-// Combined type for reservation with product details
+// Combined type for reservation with product details - Updated to match API response
 type ReservedProduct = {
   _id: string;
   buyerId: string;
-  product: {
+  productId: {
     _id: string;
-    farmerId: string;
+    farmerId: {
+      _id: string;
+      name: string;
+      email: string;
+      phone: string;
+      address: string;
+    };
     title: string;
+    description: string;
+    cropType: string;
     pricePerKg: number;
+    totalQuantityKg: number;
+    availableQuantityKg: number;
     unit: string;
     images: string[];
-    location: string;
+    location?: {
+      type: 'Point';
+      coordinates: [number, number]; // [longitude, latitude]
+    };
+    address: string;
+    createdAt: string;
+    updatedAt: string;
   };
   quantityKg: number;
   status: "reserved" | "cancelled" | "fulfilled";
   reservedAt: Date;
   fulfilledAt?: Date;
 };
-
-// Dummy data combining reservations and products
-const dummyReservations: ReservedProduct[] = [
-  {
-    _id: "res_1",
-    buyerId: "user_456",
-    product: {
-      _id: "prod_1",
-      farmerId: "user_123",
-      title: "Organic Red Bananas",
-      pricePerKg: 3.50,
-      unit: "kg",
-      images: ["/placeholder.svg"],
-      location: "Green Valley Farms, Farmtown",
-    },
-    quantityKg: 10,
-    status: "reserved",
-    reservedAt: new Date("2025-07-13T10:00:00Z"),
-  },
-  {
-    _id: "res_2",
-    buyerId: "user_456",
-    product: {
-      _id: "prod_2",
-      farmerId: "user_789",
-      title: "Heirloom Tomatoes",
-      pricePerKg: 4.20,
-      unit: "kg",
-      images: ["/placeholder.svg"],
-      location: "Sunnyvale Gardens, Oakhaven",
-    },
-    quantityKg: 5,
-    status: "fulfilled",
-    reservedAt: new Date("2025-07-10T14:00:00Z"),
-    fulfilledAt: new Date("2025-07-12T11:00:00Z"),
-  },
-  {
-    _id: "res_3",
-    buyerId: "user_456",
-    product: {
-      _id: "prod_3",
-      farmerId: "user_123",
-      title: "Basmati Rice",
-      pricePerKg: 2.80,
-      unit: "kg",
-      images: ["/placeholder.svg"],
-      location: "Sunrise Paddy Fields, Rivertown",
-    },
-    quantityKg: 25,
-    status: "cancelled",
-    reservedAt: new Date("2025-07-09T18:00:00Z"),
-  },
-  {
-    _id: "res_4",
-    buyerId: "user_456",
-    product: {
-      _id: "prod_4",
-      farmerId: "user_789",
-      title: "Fresh Spinach",
-      pricePerKg: 2.00,
-      unit: "kg",
-      images: ["/placeholder.svg"],
-      location: "Sunnyvale Gardens, Oakhaven",
-    },
-    quantityKg: 2,
-    status: "reserved",
-    reservedAt: new Date("2025-07-14T08:30:00Z"),
-  },
-];
 
 const getStatusStyles = (status: ReservedProduct['status']) => {
   switch (status) {
@@ -131,6 +79,8 @@ export default function ReservedProductsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const router = useRouter();
+  
   useEffect(() => {
     const fetchReservations = async () => {
       if (sessionStatus === 'authenticated' && session?.user?.id) {
@@ -141,13 +91,18 @@ export default function ReservedProductsPage() {
             throw new Error('Failed to fetch reservations');
           }
           const data = await response.json();
-          // Convert date strings to Date objects
+          
+          // Convert date strings to Date objects and handle the API response structure
           const formattedReservations = data.data.map((res: any) => ({
             ...res,
             reservedAt: new Date(res.reservedAt),
             fulfilledAt: res.fulfilledAt ? new Date(res.fulfilledAt) : undefined,
+            // Ensure pricePerKg is available at reservation level, fallback to product price
+            pricePerKg: res.pricePerKg || res.productId?.pricePerKg || 0,
           }));
+          
           setReservations(formattedReservations);
+          console.log("Fetched Reservations:", formattedReservations);
           setError(null);
         } catch (err) {
           setError(err instanceof Error ? err.message : 'An unknown error occurred');
@@ -155,7 +110,6 @@ export default function ReservedProductsPage() {
           setLoading(false);
         }
       } else if (sessionStatus === 'unauthenticated') {
-        // Handle case where user is not logged in
         setLoading(false);
         setError("Please log in to see your reservations.");
       }
@@ -181,9 +135,11 @@ export default function ReservedProductsPage() {
           res._id === reservationId ? { ...res, status: "cancelled" } : res
         )
       );
+      
+      toast.success("Reservation cancelled successfully!");
     } catch (error) {
       console.error("Error cancelling reservation:", error);
-      // Optionally, show an error toast to the user
+      toast.error("Failed to cancel reservation. Please try again.");
     }
   };
 
@@ -194,7 +150,7 @@ export default function ReservedProductsPage() {
   const activeReservations = reservations.filter(r => r.status === 'reserved').length;
   const totalSpent = reservations
     .filter(r => r.status === 'fulfilled')
-    .reduce((sum, r) => sum + r.quantityKg * r.product.pricePerKg, 0);
+    .reduce((sum, r) => sum + r.quantityKg * r.productId.pricePerKg, 0);
 
   if (sessionStatus === 'loading' || loading) {
     return (
@@ -212,6 +168,7 @@ export default function ReservedProductsPage() {
     );
   }
 
+  console.log("Reservations Data:", reservations);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -283,18 +240,27 @@ export default function ReservedProductsPage() {
           {filteredReservations.length > 0 ? (
             filteredReservations.map((reservation) => {
               const statusInfo = getStatusStyles(reservation.status);
-              const totalPrice = reservation.quantityKg * reservation.product.pricePerKg;
+              const totalPrice = reservation.quantityKg * reservation.productId.pricePerKg;
+              const product = reservation.productId;
+              
               return (
                 <Card key={reservation._id} className="p-4 flex flex-col sm:flex-row items-start gap-4">
                   <Avatar className="w-24 h-24 rounded-md">
-                    <AvatarImage src={reservation.product.images[0]} alt={reservation.product.title} />
-                    <AvatarFallback>{reservation.product.title.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={product.images?.[0]} alt={product.title} />
+                    <AvatarFallback>{product.title.charAt(0)}</AvatarFallback>
                   </Avatar>
                   <div className="flex-grow">
                     <div className="flex justify-between items-start">
                       <div>
-                        <h3 className="font-semibold text-lg">{reservation.product.title}</h3>
-                        <p className="text-sm text-muted-foreground">From: {reservation.product.location}</p>
+                        <h3 className="font-semibold text-lg">{product.title}</h3>
+                        <p className="text-sm text-muted-foreground">
+                          From: {product.address || (product.location ? 
+                            `Coordinates: ${product.location.coordinates[1]}, ${product.location.coordinates[0]}` : 
+                            'Location not specified')}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Farmer: {product.farmerId?.name || 'Unknown'}
+                        </p>
                       </div>
                       <Badge variant={statusInfo.variant} className="flex items-center gap-1.5">
                         {statusInfo.icon}
@@ -305,7 +271,7 @@ export default function ReservedProductsPage() {
                     <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 text-sm">
                       <div>
                         <p className="text-muted-foreground">Quantity</p>
-                        <p className="font-medium">{reservation.quantityKg} {reservation.product.unit}</p>
+                        <p className="font-medium">{reservation.quantityKg} {product.unit}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Total Price</p>
@@ -327,7 +293,7 @@ export default function ReservedProductsPage() {
                           <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
                           <AlertDialogDescription>
                             This action cannot be undone. This will permanently cancel your reservation for
-                            <span className="font-semibold"> {reservation.quantityKg}{reservation.product.unit} of {reservation.product.title}</span>.
+                            <span className="font-semibold"> {reservation.quantityKg}{product.unit} of {product.title}</span>.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>

@@ -249,7 +249,7 @@ export default function ProfilePage() {
             <CardDescription>Add new products to sell or manage your existing listings.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => router.push('/products/sell')}>Go to Marketplace</Button>
+            <Button className="cursor-pointer" onClick={() => router.push('/user/sell-products')}>Sell Products</Button>
           </CardContent>
         </Card>
         <Card className="hover:border-primary transition-colors">
@@ -261,7 +261,7 @@ export default function ProfilePage() {
             <CardDescription>Check the status of products you have reserved from other sellers.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Button onClick={() => router.push('/products/reservations')}>View Reservations</Button>
+            <Button className="cursor-pointer" onClick={() => router.push('/user/reserved-products')}>View Reservations</Button>
           </CardContent>
         </Card>
       </div>

@@ -6,6 +6,8 @@ import {
   ChevronsUpDown,
   CreditCard,
   LogOut,
+  Package,
+  ShoppingCart,
   Sparkles,
 } from "lucide-react"
 
@@ -30,6 +32,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { signOut } from "@/lib/auth"
+import { useRouter } from "next/navigation"
 
 export function NavUser({
   user, handlesignout
@@ -42,6 +45,7 @@ export function NavUser({
   handlesignout: () => void
 }) {
   const { isMobile } = useSidebar()
+  const router = useRouter();
 
   return (
     <SidebarMenu>
@@ -90,13 +94,17 @@ export function NavUser({
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuGroup>
-              <DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" onClick={() => router.push("/user/profile")}>
                 <BadgeCheck />
                 Account
               </DropdownMenuItem>
-              <DropdownMenuItem>
-                <CreditCard />
-                Billing
+              <DropdownMenuItem className="cursor-pointer" onClick={() => router.push("/user/reserved-products")}>
+                <Package />
+                Your Reservations
+              </DropdownMenuItem>
+              <DropdownMenuItem className="cursor-pointer" onClick={() => router.push("/user/sell-products")}>
+                <ShoppingCart />
+                Your Products
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <Bell />
@@ -104,7 +112,7 @@ export function NavUser({
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handlesignout}>
+            <DropdownMenuItem className="cursor-pointer" onClick={handlesignout}>
               <LogOut />
               Log out
             </DropdownMenuItem>
