@@ -1,0 +1,790 @@
+"use client"
+
+import { useState, useEffect } from 'react'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Badge } from '@/components/ui/badge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet'
+import { ScrollArea } from '@/components/ui/scroll-area'
+import { Separator } from '@/components/ui/separator'
+import { 
+  Search, 
+  MapPin, 
+  TrendingUp, 
+  TrendingDown, 
+  Clock, 
+  ShoppingCart, 
+  Building2,
+  Filter,
+  SortAsc,
+  SortDesc,
+  Navigation,
+  Loader2,
+  Star,
+  Eye,
+  Phone
+} from 'lucide-react'
+
+// Types for market data
+interface MarketPrice {
+  id: string
+  product: string
+  category: string
+  price: number
+  unit: string
+  currency: string
+  location: string
+  district: string
+  market: string
+  date: string
+  trend: 'up' | 'down' | 'stable'
+  quality: 'premium' | 'standard' | 'economy'
+  availability: 'high' | 'medium' | 'low'
+  distance?: number // in km from user location
+  lastUpdated: string
+}
+
+interface Market {
+  id: string
+  name: string
+  location: string
+  district: string
+  type: 'wholesale' | 'retail' | 'farmers'
+  description: string
+  image: string
+  productsCount: number
+  rating: number
+  openHours: string
+  contact: string
+  coordinates: {
+    lat: number
+    lng: number
+  }
+}
+
+// Mock data for Sri Lankan markets
+const sriLankanMarkets: Market[] = [
+  {
+    id: '1',
+    name: 'Manning Market',
+    location: 'Pettah, Colombo',
+    district: 'Colombo',
+    type: 'wholesale',
+    description: 'Largest wholesale market in Colombo with fresh vegetables, fruits and spices',
+    image: '🏪',
+    productsCount: 150,
+    rating: 4.2,
+    openHours: '4:00 AM - 8:00 PM',
+    contact: '+94 11 2345678',
+    coordinates: { lat: 6.9271, lng: 79.8612 }
+  },
+  {
+    id: '2',
+    name: 'Dambulla Economic Centre',
+    location: 'Dambulla',
+    district: 'Matale',
+    type: 'wholesale',
+    description: 'Major vegetable distribution center serving the entire island',
+    image: '🌽',
+    productsCount: 200,
+    rating: 4.5,
+    openHours: '2:00 AM - 10:00 PM',
+    contact: '+94 66 2284567',
+    coordinates: { lat: 7.8731, lng: 80.6511 }
+  },
+  {
+    id: '3',
+    name: 'Kandy Central Market',
+    location: 'Kandy City',
+    district: 'Kandy',
+    type: 'retail',
+    description: 'Traditional market with local vegetables, fruits and hill country produce',
+    image: '🥬',
+    productsCount: 80,
+    rating: 4.0,
+    openHours: '5:00 AM - 7:00 PM',
+    contact: '+94 81 2234567',
+    coordinates: { lat: 7.2906, lng: 80.6337 }
+  },
+  {
+    id: '4',
+    name: 'Peliyagoda Fish Market',
+    location: 'Peliyagoda',
+    district: 'Gampaha',
+    type: 'wholesale',
+    description: 'Premier fish and seafood market supplying fresh catch daily',
+    image: '🐟',
+    productsCount: 60,
+    rating: 4.3,
+    openHours: '3:00 AM - 12:00 PM',
+    contact: '+94 11 2876543',
+    coordinates: { lat: 6.9483, lng: 79.8890 }
+  },
+  {
+    id: '5',
+    name: 'Galle Market',
+    location: 'Galle Fort',
+    district: 'Galle',
+    type: 'retail',
+    description: 'Historic market with spices, tropical fruits and southern specialties',
+    image: '🥭',
+    productsCount: 70,
+    rating: 3.9,
+    openHours: '6:00 AM - 6:00 PM',
+    contact: '+94 91 2345678',
+    coordinates: { lat: 6.0329, lng: 80.2168 }
+  },
+  {
+    id: '6',
+    name: 'Jaffna Farmers Market',
+    location: 'Jaffna',
+    district: 'Jaffna',
+    type: 'farmers',
+    description: 'Direct from farmers market with northern region specialties',
+    image: '🌶️',
+    productsCount: 90,
+    rating: 4.1,
+    openHours: '5:00 AM - 8:00 PM',
+    contact: '+94 21 2234567',
+    coordinates: { lat: 9.6615, lng: 80.0255 }
+  }
+]
+
+// Mock price data
+const mockPrices: MarketPrice[] = [
+  // Manning Market prices
+  {
+    id: '1',
+    product: 'Tomato',
+    category: 'Vegetables',
+    price: 180,
+    unit: 'kg',
+    currency: 'LKR',
+    location: 'Pettah, Colombo',
+    district: 'Colombo',
+    market: 'Manning Market',
+    date: '2025-01-16',
+    trend: 'up',
+    quality: 'standard',
+    availability: 'high',
+    distance: 5,
+    lastUpdated: '2 hours ago'
+  },
+  {
+    id: '2',
+    product: 'Onion',
+    category: 'Vegetables',
+    price: 220,
+    unit: 'kg',
+    currency: 'LKR',
+    location: 'Pettah, Colombo',
+    district: 'Colombo',
+    market: 'Manning Market',
+    date: '2025-01-16',
+    trend: 'down',
+    quality: 'standard',
+    availability: 'medium',
+    distance: 5,
+    lastUpdated: '1 hour ago'
+  },
+  {
+    id: '3',
+    product: 'Carrot',
+    category: 'Vegetables',
+    price: 160,
+    unit: 'kg',
+    currency: 'LKR',
+    location: 'Pettah, Colombo',
+    district: 'Colombo',
+    market: 'Manning Market',
+    date: '2025-01-16',
+    trend: 'stable',
+    quality: 'premium',
+    availability: 'high',
+    distance: 5,
+    lastUpdated: '30 minutes ago'
+  },
+  // Dambulla prices
+  {
+    id: '4',
+    product: 'Tomato',
+    category: 'Vegetables',
+    price: 150,
+    unit: 'kg',
+    currency: 'LKR',
+    location: 'Dambulla',
+    district: 'Matale',
+    market: 'Dambulla Economic Centre',
+    date: '2025-01-16',
+    trend: 'up',
+    quality: 'standard',
+    availability: 'high',
+    distance: 148,
+    lastUpdated: '3 hours ago'
+  },
+  {
+    id: '5',
+    product: 'Potato',
+    category: 'Vegetables',
+    price: 120,
+    unit: 'kg',
+    currency: 'LKR',
+    location: 'Dambulla',
+    district: 'Matale',
+    market: 'Dambulla Economic Centre',
+    date: '2025-01-16',
+    trend: 'stable',
+    quality: 'standard',
+    availability: 'high',
+    distance: 148,
+    lastUpdated: '2 hours ago'
+  },
+  // Kandy prices
+  {
+    id: '6',
+    product: 'Tomato',
+    category: 'Vegetables',
+    price: 170,
+    unit: 'kg',
+    currency: 'LKR',
+    location: 'Kandy City',
+    district: 'Kandy',
+    market: 'Kandy Central Market',
+    date: '2025-01-16',
+    trend: 'down',
+    quality: 'premium',
+    availability: 'medium',
+    distance: 116,
+    lastUpdated: '4 hours ago'
+  },
+  // More sample data for different products and locations
+  {
+    id: '7',
+    product: 'Rice',
+    category: 'Grains',
+    price: 95,
+    unit: 'kg',
+    currency: 'LKR',
+    location: 'Pettah, Colombo',
+    district: 'Colombo',
+    market: 'Manning Market',
+    date: '2025-01-16',
+    trend: 'stable',
+    quality: 'standard',
+    availability: 'high',
+    distance: 5,
+    lastUpdated: '1 hour ago'
+  },
+  {
+    id: '8',
+    product: 'Fish (Tuna)',
+    category: 'Seafood',
+    price: 850,
+    unit: 'kg',
+    currency: 'LKR',
+    location: 'Peliyagoda',
+    district: 'Gampaha',
+    market: 'Peliyagoda Fish Market',
+    date: '2025-01-16',
+    trend: 'up',
+    quality: 'premium',
+    availability: 'medium',
+    distance: 12,
+    lastUpdated: '2 hours ago'
+  }
+]
+
+export default function MarketPage() {
+  const [selectedMarket, setSelectedMarket] = useState<Market | null>(null)
+  const [isSheetOpen, setIsSheetOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [sortBy, setSortBy] = useState<'price' | 'distance'>('price')
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
+  const [filterCategory, setFilterCategory] = useState<string>('all')
+  const [isSearching, setIsSearching] = useState(false)
+  const [searchResults, setSearchResults] = useState<MarketPrice[]>([])
+  const [marketPrices, setMarketPrices] = useState<MarketPrice[]>([])
+
+  // Get unique categories for filter
+  const categories = ['all', ...Array.from(new Set(mockPrices.map(p => p.category)))]
+
+  // Handle market card click
+  const handleMarketClick = (market: Market) => {
+    setSelectedMarket(market)
+    // Get prices for selected market
+    const prices = mockPrices.filter(p => p.market === market.name)
+    setMarketPrices(prices)
+    setIsSheetOpen(true)
+  }
+
+  // Handle search
+  const handleSearch = (query: string) => {
+    setSearchQuery(query)
+    setIsSearching(query.length > 0)
+    
+    if (query.trim() === "") {
+      setSearchResults([])
+      return
+    }
+
+    // Search for products across all markets
+    const results = mockPrices.filter(price => 
+      price.product.toLowerCase().includes(query.toLowerCase()) ||
+      price.category.toLowerCase().includes(query.toLowerCase())
+    )
+    
+    setSearchResults(results)
+  }
+
+  // Get filtered and sorted search results
+  const getFilteredResults = () => {
+    let results = [...searchResults]
+    
+    // Apply category filter
+    if (filterCategory !== 'all') {
+      results = results.filter(price => price.category === filterCategory)
+    }
+    
+    // Apply sorting
+    results.sort((a, b) => {
+      let comparison = 0
+      
+      if (sortBy === 'price') {
+        comparison = a.price - b.price
+      } else if (sortBy === 'distance') {
+        comparison = (a.distance || 0) - (b.distance || 0)
+      }
+      
+      return sortOrder === 'asc' ? comparison : -comparison
+    })
+    
+    return results
+  }
+
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case 'up':
+        return <TrendingUp className="h-4 w-4 text-red-500" />
+      case 'down':
+        return <TrendingDown className="h-4 w-4 text-green-500" />
+      default:
+        return <div className="h-4 w-4 rounded-full bg-gray-400" />
+    }
+  }
+
+  const getQualityBadge = (quality: string) => {
+    const variants = {
+      premium: 'default',
+      standard: 'secondary',
+      economy: 'outline'
+    } as const
+    
+    return variants[quality as keyof typeof variants] || 'secondary'
+  }
+
+  const getAvailabilityColor = (availability: string) => {
+    switch (availability) {
+      case 'high':
+        return 'text-green-600'
+      case 'medium':
+        return 'text-yellow-600'
+      case 'low':
+        return 'text-red-600'
+      default:
+        return 'text-gray-600'
+    }
+  }
+
+  return (
+    <div className="container mx-auto p-6 space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold">Sri Lankan Markets</h1>
+          <p className="text-muted-foreground">Find the best prices for agricultural products across the island</p>
+        </div>
+        <Badge variant="outline" className="text-sm">
+          <Building2 className="w-4 h-4 mr-1" />
+          Live Prices
+        </Badge>
+      </div>
+
+      {/* Markets Grid - Always show */}
+      <div>
+        <h2 className="text-2xl font-semibold">Major Markets</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+          {sriLankanMarkets.map((market) => (
+            <Card 
+              key={market.id} 
+              className="cursor-pointer hover:shadow-lg transition-shadow"
+              onClick={() => handleMarketClick(market)}
+            >
+              <CardHeader className="pb-2">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">{market.image}</span>
+                  <div>
+                    <CardTitle className="text-lg">{market.name}</CardTitle>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="text-xs">
+                        {market.type}
+                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <span className="text-xs">{market.rating}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </CardHeader>
+              
+              <CardContent className="space-y-3">
+                <p className="text-sm text-muted-foreground line-clamp-2">
+                  {market.description}
+                </p>
+                
+                <div className="space-y-2 text-sm">
+                  <div className="flex items-center gap-2">
+                    <MapPin className="h-4 w-4 text-muted-foreground" />
+                    <span>{market.location}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Clock className="h-4 w-4 text-muted-foreground" />
+                    <span>{market.openHours}</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                    <span>{market.productsCount}+ products</span>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+
+      {/* Search Section */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Search className="h-5 w-5" />
+            Search Products
+          </CardTitle>
+          <CardDescription>
+            Search for product prices across all markets in Sri Lanka
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="flex gap-4 mb-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search products (e.g., Tomato, Rice, Fish)"
+                value={searchQuery}
+                onChange={(e) => handleSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Category" />
+              </SelectTrigger>
+              <SelectContent>
+                {categories.map(category => (
+                  <SelectItem key={category} value={category}>
+                    {category === 'all' ? 'All Categories' : category}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          {/* Sort Controls */}
+          {isSearching && (
+            <div className="flex gap-2">
+              <Select value={sortBy} onValueChange={(value: 'price' | 'distance') => setSortBy(value)}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="price">Price</SelectItem>
+                  <SelectItem value="distance">Distance</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+              >
+                {sortOrder === 'asc' ? <SortAsc className="h-4 w-4" /> : <SortDesc className="h-4 w-4" />}
+                {sortOrder === 'asc' ? 'Low to High' : 'High to Low'}
+              </Button>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Search Results */}
+      {isSearching && (
+        <div>
+          <h2 className="text-2xl font-semibold mb-4">
+            Search Results for "{searchQuery}"
+            <span className="text-lg font-normal text-muted-foreground ml-2">
+              ({getFilteredResults().length} found)
+            </span>
+          </h2>
+          
+          {/* Group results by product */}
+          {Object.entries(
+            getFilteredResults().reduce((groups, price) => {
+              if (!groups[price.product]) {
+                groups[price.product] = []
+              }
+              groups[price.product].push(price)
+              return groups
+            }, {} as Record<string, MarketPrice[]>)
+          ).map(([product, prices]) => (
+            <div key={product} className="mb-8">
+              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5" />
+                {product}
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({prices.length} market{prices.length > 1 ? 's' : ''})
+                </span>
+              </h3>
+              
+              {/* Grid Header */}
+              <div className="bg-muted/50 rounded-t-lg p-4 border">
+                <div className="grid grid-cols-6 gap-4 text-sm font-medium text-muted-foreground">
+                  <div>Market</div>
+                  <div>Price</div>
+                  <div>Quality</div>
+                  <div>Location</div>
+                  <div>Distance</div>
+                  <div>Status</div>
+                </div>
+              </div>
+              
+              {/* Grid Rows */}
+              <div className="border border-t-0 rounded-b-lg">
+                {prices.map((price, index) => (
+                  <div 
+                    key={price.id} 
+                    className={`grid grid-cols-6 gap-4 p-4 hover:bg-muted/30 transition-colors ${
+                      index !== prices.length - 1 ? 'border-b' : ''
+                    }`}
+                  >
+                    {/* Market */}
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">{price.market}</span>
+                      {getTrendIcon(price.trend)}
+                    </div>
+                    
+                    {/* Price */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-lg font-bold text-primary">
+                        {price.currency} {price.price}
+                      </span>
+                      <span className="text-xs text-muted-foreground">per {price.unit}</span>
+                    </div>
+                    
+                    {/* Quality */}
+                    <div>
+                      <Badge variant={getQualityBadge(price.quality)} className="text-xs">
+                        {price.quality}
+                      </Badge>
+                    </div>
+                    
+                    {/* Location */}
+                    <div className="flex items-center gap-1 text-sm">
+                      <MapPin className="h-3 w-3 text-muted-foreground" />
+                      <span className="truncate">{price.location}</span>
+                    </div>
+                    
+                    {/* Distance */}
+                    <div className="flex items-center gap-1 text-sm">
+                      <Navigation className="h-3 w-3 text-muted-foreground" />
+                      <span>{price.distance} km</span>
+                    </div>
+                    
+                    {/* Status */}
+                    <div className="space-y-1">
+                      <div className={`text-xs ${getAvailabilityColor(price.availability)}`}>
+                        {price.availability} availability
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {price.lastUpdated}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Market Details Sheet */}
+      <Sheet open={isSheetOpen} onOpenChange={setIsSheetOpen}>
+        <SheetContent className="w-[450px] sm:w-[600px] p-0 sm:max-w-[580px] rounded-l-sm flex flex-col">
+          {selectedMarket && (
+            <>
+              <SheetHeader className="space-y-3 p-6 pb-4 border-b flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <span className="text-4xl">{selectedMarket.image}</span>
+                  <div>
+                    <SheetTitle className="text-2xl">{selectedMarket.name}</SheetTitle>
+                    <div className="flex items-center gap-2 mt-1">
+                      <Badge variant="outline" className="text-xs">
+                        {selectedMarket.type} market
+                      </Badge>
+                      <div className="flex items-center gap-1">
+                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                        <span className="text-sm">{selectedMarket.rating}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <SheetDescription className="text-base">
+                  {selectedMarket.description}
+                </SheetDescription>
+              </SheetHeader>
+
+              <ScrollArea className="flex-1 px-6">
+                <div className="space-y-6 py-6">
+                  {/* Market Info */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Market Information</h3>
+                    <div className="grid grid-cols-1 gap-3">
+                      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                        <MapPin className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium text-sm">Location</div>
+                          <div className="text-sm text-muted-foreground">{selectedMarket.location}, {selectedMarket.district}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                        <Clock className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium text-sm">Operating Hours</div>
+                          <div className="text-sm text-muted-foreground">{selectedMarket.openHours}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
+                        <Phone className="h-4 w-4 text-muted-foreground" />
+                        <div>
+                          <div className="font-medium text-sm">Contact</div>
+                          <div className="text-sm text-muted-foreground">{selectedMarket.contact}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  {/* Current Prices */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Current Prices</h3>
+                    <div className="space-y-3">
+                      {marketPrices.length > 0 ? (
+                        marketPrices.map((price) => (
+                          <Card key={price.id} className="p-4">
+                            <div className="flex items-center justify-between mb-2">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-medium">{price.product}</h4>
+                                <Badge variant={getQualityBadge(price.quality)} className="text-xs">
+                                  {price.quality}
+                                </Badge>
+                              </div>
+                              {getTrendIcon(price.trend)}
+                            </div>
+                            
+                            <div className="flex items-center justify-between">
+                              <span className="text-xl font-bold text-primary">
+                                {price.currency} {price.price}
+                              </span>
+                              <span className="text-sm text-muted-foreground">per {price.unit}</span>
+                            </div>
+                            
+                            <div className="flex items-center justify-between mt-2 text-sm">
+                              <span className={getAvailabilityColor(price.availability)}>
+                                {price.availability} availability
+                              </span>
+                              <span className="text-muted-foreground">
+                                Updated {price.lastUpdated}
+                              </span>
+                            </div>
+                          </Card>
+                        ))
+                      ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <ShoppingCart className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                          <p>No price data available for this market</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  
+                  {/* Add bottom padding */}
+                  <div className="h-20"></div>
+                </div>
+              </ScrollArea>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
+
+      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Price Trends</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <div className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-red-500" />
+              <span className="text-sm">Vegetables trending up this week</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <TrendingDown className="h-4 w-4 text-green-500" />
+              <span className="text-sm">Rice prices stable</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="h-4 w-4 rounded-full bg-blue-500"></div>
+              <span className="text-sm">Fish prices seasonal variation</span>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Market Insights</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground">
+              Dambulla offers best wholesale prices for vegetables. 
+              Colombo markets have premium quality with higher prices.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-lg">Quick Actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            <Button variant="outline" size="sm" className="w-full justify-start">
+              <Eye className="h-4 w-4 mr-2" />
+              Compare Prices
+            </Button>
+            <Button variant="outline" size="sm" className="w-full justify-start">
+              <Navigation className="h-4 w-4 mr-2" />
+              Find Nearest Market
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}

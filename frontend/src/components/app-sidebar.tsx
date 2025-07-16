@@ -66,7 +66,7 @@ const marketIntelligentItems = [
   },
   {
     title: "Marketplace",
-    url: "#",
+    url: "/market",
     icon: ShoppingCart,
   },
   {
