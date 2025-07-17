@@ -18,15 +18,16 @@ export async function middleware(request: NextRequest) {
   }
 
   // Check for NextAuth session token in cookies
-//   const sessionToken = request.cookies.get('next-auth.session-token') || 
-//                       request.cookies.get('__Secure-next-auth.session-token');
-                    // Check for NextAuth session token in cookies
-    const sessionToken = request.cookies.get('authjs.session-token') || 
-                                                            request.cookies.get('__Secure-authjs.session-token');
+  //   const sessionToken = request.cookies.get('next-auth.session-token') ||
+  //                       request.cookies.get('__Secure-next-auth.session-token');
+  // Check for NextAuth session token in cookies
+  const sessionToken =
+    request.cookies.get("authjs.session-token") ||
+    request.cookies.get("__Secure-authjs.session-token");
 
-// Redirect to login if not authenticated
-    if (!sessionToken && pathname !== "/login" && pathname !== "/signup") {
-        return NextResponse.redirect(new URL("/login", request.url));
+  // Redirect to login if not authenticated
+  if (!sessionToken && pathname !== "/login" && pathname !== "/signup") {
+    return NextResponse.redirect(new URL("/login", request.url));
   }
 
   // Continue to the requested page
