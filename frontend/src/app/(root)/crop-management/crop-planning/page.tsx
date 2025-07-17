@@ -91,8 +91,12 @@ export default function CropPlanningPage() {
       if (data.status === 'success' && Array.isArray(data.data)) {
         console.log('✅ Setting crops:', data.data.length, 'items')
         
-        // Helper function to get random crops
+        // Helper function to get random crops (client-side only)
         const getRandomCrops = (cropsArray: ICrop[], count: number = 10): ICrop[] => {
+          // Use a deterministic selection for SSR, random for client
+          if (typeof window === 'undefined') {
+            return cropsArray.slice(0, count)
+          }
           const shuffled = [...cropsArray].sort(() => 0.5 - Math.random())
           return shuffled.slice(0, count)
         }

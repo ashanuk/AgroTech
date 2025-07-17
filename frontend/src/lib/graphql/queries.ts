@@ -384,3 +384,198 @@ export const GET_USER = gql`
     }
   }
 `;
+
+// Product Queries & Mutations
+export const GET_PRODUCTS = gql`
+  query GetProducts($limit: Int, $offset: Int, $cropType: String, $farmerId: String) {
+    products(limit: $limit, offset: $offset, cropType: $cropType, farmerId: $farmerId) {
+      id
+      farmerId
+      title
+      description
+      cropType
+      pricePerKg
+      totalQuantityKg
+      availableQuantityKg
+      unit
+      images
+      location {
+        type
+        coordinates
+      }
+      address
+      createdAt
+      updatedAt
+      farmer {
+        id
+        username
+        email
+        avatar_url
+        is_verified
+      }
+    }
+  }
+`;
+
+export const GET_PRODUCT = gql`
+  query GetProduct($id: ID!) {
+    product(id: $id) {
+      id
+      farmerId
+      title
+      description
+      cropType
+      pricePerKg
+      totalQuantityKg
+      availableQuantityKg
+      unit
+      images
+      location {
+        type
+        coordinates
+      }
+      address
+      createdAt
+      updatedAt
+      farmer {
+        id
+        username
+        email
+        avatar_url
+        is_verified
+      }
+    }
+  }
+`;
+
+export const SEARCH_PRODUCTS = gql`
+  query SearchProducts($query: String!, $limit: Int, $offset: Int) {
+    searchProducts(query: $query, limit: $limit, offset: $offset) {
+      id
+      farmerId
+      title
+      description
+      cropType
+      pricePerKg
+      totalQuantityKg
+      availableQuantityKg
+      unit
+      images
+      location {
+        type
+        coordinates
+      }
+      address
+      createdAt
+      updatedAt
+      farmer {
+        id
+        username
+        email
+        avatar_url
+        is_verified
+      }
+    }
+  }
+`;
+
+export const GET_NEARBY_PRODUCTS = gql`
+  query GetNearbyProducts($longitude: Float!, $latitude: Float!, $maxDistance: Float, $limit: Int) {
+    nearbyProducts(longitude: $longitude, latitude: $latitude, maxDistance: $maxDistance, limit: $limit) {
+      id
+      farmerId
+      title
+      description
+      cropType
+      pricePerKg
+      totalQuantityKg
+      availableQuantityKg
+      unit
+      images
+      location {
+        type
+        coordinates
+      }
+      address
+      createdAt
+      updatedAt
+      farmer {
+        id
+        username
+        email
+        avatar_url
+        is_verified
+      }
+    }
+  }
+`;
+
+export const CREATE_PRODUCT_MUTATION = gql`
+  mutation CreateProduct($input: CreateProductInput!) {
+    createProduct(input: $input) {
+      id
+      farmerId
+      title
+      description
+      cropType
+      pricePerKg
+      totalQuantityKg
+      availableQuantityKg
+      unit
+      images
+      location {
+        type
+        coordinates
+      }
+      address
+      createdAt
+      updatedAt
+      farmer {
+        id
+        username
+        email
+        avatar_url
+        is_verified
+      }
+    }
+  }
+`;
+
+export const UPDATE_PRODUCT_MUTATION = gql`
+  mutation UpdateProduct($id: ID!, $input: UpdateProductInput!) {
+    updateProduct(id: $id, input: $input) {
+      id
+      farmerId
+      title
+      description
+      cropType
+      pricePerKg
+      totalQuantityKg
+      availableQuantityKg
+      unit
+      images
+      location {
+        type
+        coordinates
+      }
+      address
+      createdAt
+      updatedAt
+      farmer {
+        id
+        username
+        email
+        avatar_url
+        is_verified
+      }
+    }
+  }
+`;
+
+export const DELETE_PRODUCT_MUTATION = gql`
+  mutation DeleteProduct($id: ID!) {
+    deleteProduct(id: $id)
+  }
+`;
+
+
