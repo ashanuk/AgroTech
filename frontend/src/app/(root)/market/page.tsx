@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
-import { useQuery } from '@apollo/client'
+import { useQuery, useMutation } from '@apollo/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -25,9 +25,12 @@ import {
   Loader2,
   Star,
   Eye,
-  Phone
+  Phone,
+  Plus,
+  Minus,
+  Package
 } from 'lucide-react'
-import { GET_PRODUCTS, SEARCH_PRODUCTS, GET_NEARBY_PRODUCTS } from '@/lib/graphql/queries'
+import { GET_PRODUCTS, SEARCH_PRODUCTS, GET_NEARBY_PRODUCTS, CREATE_RESERVATION_MUTATION } from '@/lib/graphql/queries'
 import { useIsClient, useGeolocation, useSafeDate } from '@/hooks/useClientSafe'
 
 // Types for market data - Update to match GraphQL Product type
@@ -50,7 +53,8 @@ interface Product {
   updatedAt: string
   farmer: {
     id: string
-    username: string
+    name: string
+    username?: string
     email: string
     avatar_url?: string
     is_verified: boolean
@@ -336,6 +340,12 @@ export default function MarketPage() {
   const [marketPrices, setMarketPrices] = useState<MarketPrice[]>([])
   const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null)
   const [isClient, setIsClient] = useState(false)
+  
+  // Reservation states
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null)
+  const [isReservationSheetOpen, setIsReservationSheetOpen] = useState(false)
+  const [reservationQuantity, setReservationQuantity] = useState<number>(1)
+  const [isReserving, setIsReserving] = useState(false)
 
   // GraphQL Queries
   const { 
@@ -354,6 +364,24 @@ export default function MarketPage() {
   } = useQuery(SEARCH_PRODUCTS, {
     variables: { query: searchQuery, limit: 20, offset: 0 },
     skip: !searchQuery || searchQuery.length < 2
+  })
+
+  // Reservation mutation
+  const [createReservation] = useMutation(CREATE_RESERVATION_MUTATION, {
+    onCompleted: (data) => {
+      console.log('Reservation created:', data.createReservation)
+      setIsReservationSheetOpen(false)
+      setReservationQuantity(1)
+      setSelectedProduct(null)
+      // Refetch products to update available quantities
+      if (isSearching) {
+        refetchSearch()
+      }
+    },
+    onError: (error) => {
+      console.error('Reservation error:', error)
+      alert(`Error creating reservation: ${error.message}`)
+    }
   })
 
   // Hydration fix: Set client-side flag
@@ -411,7 +439,7 @@ export default function MarketPage() {
         currency: 'LKR',
         location: product.address || 'Sri Lanka',
         district: extractDistrict(product.address || ''),
-        market: `${product.farmer?.username || 'Farm'}'s Farm`,
+        market: `${product.farmer?.name || 'Farm'}'s Farm`,
         date: formattedDate,
         trend: 'stable' as const,
         quality: determineQuality(product.pricePerKg),
@@ -510,9 +538,48 @@ export default function MarketPage() {
       return
     }
 
-    // Refetch search results when query changes
-    if (query.length >= 2) {
+    // Refetch search results when query changes - now triggers on single character
+    if (query.length >= 1) {
       refetchSearch({ query, limit: 20, offset: 0 })
+    }
+  }
+
+  // Handle reservation
+  const handleReserveProduct = (product: Product) => {
+    setSelectedProduct(product)
+    setReservationQuantity(1)
+    setIsReservationSheetOpen(true)
+  }
+
+  const handleQuantityChange = (increment: boolean) => {
+    if (increment) {
+      if (selectedProduct && reservationQuantity < selectedProduct.availableQuantityKg) {
+        setReservationQuantity(prev => prev + 1)
+      }
+    } else {
+      if (reservationQuantity > 1) {
+        setReservationQuantity(prev => prev - 1)
+      }
+    }
+  }
+
+  const handleCreateReservation = async () => {
+    if (!selectedProduct) return
+    
+    setIsReserving(true)
+    try {
+      await createReservation({
+        variables: {
+          input: {
+            productId: selectedProduct.id,
+            quantityKg: reservationQuantity
+          }
+        }
+      })
+    } catch (error) {
+      console.error('Error creating reservation:', error)
+    } finally {
+      setIsReserving(false)
     }
   }
 
@@ -750,93 +817,128 @@ export default function MarketPage() {
                 </span>
               </h2>
               
-              {/* Group results by product */}
-              {Object.entries(
-                getFilteredResults().reduce((groups: Record<string, MarketPrice[]>, price) => {
-                  if (!groups[price.product]) {
-                    groups[price.product] = []
-                  }
-                  groups[price.product].push(price)
-                  return groups
-                }, {})
-              ).map(([product, prices]: [string, MarketPrice[]]) => (
-                <div key={product} className="mb-8">
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <ShoppingCart className="h-5 w-5" />
-                    {product}
-                    <span className="text-sm font-normal text-muted-foreground">
-                      ({prices.length} farm{prices.length > 1 ? 's' : ''})
-                    </span>
-                  </h3>
-                  
-                  {/* Grid Header */}
-                  <div className="bg-muted/50 rounded-t-lg p-4 border">
-                    <div className="grid grid-cols-6 gap-4 text-sm font-medium text-muted-foreground">
-                      <div>Farmer/Market</div>
-                      <div>Price</div>
-                      <div>Quality</div>
-                      <div>Location</div>
-                      <div>Distance</div>
-                      <div>Status</div>
+              {getFilteredResults().length === 0 ? (
+                <div className="text-center py-12">
+                  <ShoppingCart className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                  <h3 className="text-lg font-medium mb-2">No products found</h3>
+                  <p className="text-muted-foreground">
+                    Try searching with different keywords or check your spelling.
+                  </p>
+                </div>
+              ) : (
+                /* Group results by product */
+                Object.entries(
+                  getFilteredResults().reduce((groups: Record<string, MarketPrice[]>, price) => {
+                    if (!groups[price.product]) {
+                      groups[price.product] = []
+                    }
+                    groups[price.product].push(price)
+                    return groups
+                  }, {})
+                ).map(([product, prices]: [string, MarketPrice[]]) => (
+                  <div key={product} className="mb-8">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                      <ShoppingCart className="h-5 w-5" />
+                      {product}
+                      <span className="text-sm font-normal text-muted-foreground">
+                        ({prices.length} farm{prices.length > 1 ? 's' : ''})
+                      </span>
+                    </h3>
+                    
+                    {/* Grid Header */}
+                    <div className="bg-muted/50 rounded-t-lg p-4 border">
+                      <div className="grid grid-cols-7 gap-4 text-sm font-medium text-muted-foreground">
+                        <div>Farmer/Market</div>
+                        <div>Price</div>
+                        <div>Quality</div>
+                        <div>Location</div>
+                        <div>Distance</div>
+                        <div>Status</div>
+                        <div>Action</div>
+                      </div>
+                    </div>
+                    
+                    {/* Grid Rows */}
+                    <div className="border border-t-0 rounded-b-lg">
+                      {prices.map((price, index) => {
+                        // Find the corresponding product data
+                        const productData: Product | undefined = searchResults.find((p: Product) => p.id === price.id)
+                        
+                        return (
+                          <div 
+                            key={price.id} 
+                            className={`grid grid-cols-7 gap-4 p-4 hover:bg-muted/30 transition-colors ${
+                              index !== prices.length - 1 ? 'border-b' : ''
+                            }`}
+                          >
+                            {/* Market */}
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{price.market}</span>
+                              {getTrendIcon(price.trend)}
+                            </div>
+                            
+                            {/* Price */}
+                            <div className="flex items-center gap-2">
+                              <span className="text-lg font-bold text-primary">
+                                {price.currency} {price.price}
+                              </span>
+                              <span className="text-xs text-muted-foreground">per {price.unit}</span>
+                            </div>
+                            
+                            {/* Quality */}
+                            <div>
+                              <Badge variant={getQualityBadge(price.quality)} className="text-xs">
+                                {price.quality}
+                              </Badge>
+                            </div>
+                            
+                            {/* Location */}
+                            <div className="flex items-center gap-1 text-sm">
+                              <MapPin className="h-3 w-3 text-muted-foreground" />
+                              <span className="truncate">{price.location}</span>
+                            </div>
+                            
+                            {/* Distance */}
+                            <div className="flex items-center gap-1 text-sm">
+                              <Navigation className={`h-3 w-3 ${price.distance && price.distance <= 10 ? 'text-green-500' : 'text-muted-foreground'}`} />
+                              <span className={price.distance && price.distance <= 10 ? 'text-green-600 font-medium' : ''}>
+                                {price.distance ? `${price.distance} km` : 'N/A'}
+                              </span>
+                            </div>
+                            
+                            {/* Status */}
+                            <div className="space-y-1">
+                              <div className={`text-xs ${getAvailabilityColor(price.availability)}`}>
+                                {price.availability} availability
+                              </div>
+                              <div className="text-xs text-muted-foreground">
+                                {price.lastUpdated}
+                              </div>
+                            </div>
+                            
+                            {/* Action - Reserve Button */}
+                            <div className="flex items-center">
+                              {productData ? (
+                                <Button
+                                  size="sm"
+                                  onClick={() => handleReserveProduct(productData)}
+                                  disabled={!productData.availableQuantityKg || productData.availableQuantityKg === 0}
+                                  className="h-8 px-3"
+                                >
+                                  <Package className="h-3 w-3 mr-1" />
+                                  Reserve
+                                </Button>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">N/A</span>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })}
                     </div>
                   </div>
-                  
-                  {/* Grid Rows */}
-                  <div className="border border-t-0 rounded-b-lg">
-                    {prices.map((price, index) => (
-                      <div 
-                        key={price.id} 
-                        className={`grid grid-cols-6 gap-4 p-4 hover:bg-muted/30 transition-colors ${
-                          index !== prices.length - 1 ? 'border-b' : ''
-                        }`}
-                      >
-                        {/* Market */}
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{price.market}</span>
-                          {getTrendIcon(price.trend)}
-                        </div>
-                        
-                        {/* Price */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-primary">
-                            {price.currency} {price.price}
-                          </span>
-                          <span className="text-xs text-muted-foreground">per {price.unit}</span>
-                        </div>
-                        
-                        {/* Quality */}
-                        <div>
-                          <Badge variant={getQualityBadge(price.quality)} className="text-xs">
-                            {price.quality}
-                          </Badge>
-                        </div>
-                        
-                        {/* Location */}
-                        <div className="flex items-center gap-1 text-sm">
-                          <MapPin className="h-3 w-3 text-muted-foreground" />
-                          <span className="truncate">{price.location}</span>
-                        </div>
-                        
-                        {/* Distance */}
-                        <div className="flex items-center gap-1 text-sm">
-                          <Navigation className="h-3 w-3 text-muted-foreground" />
-                          <span>{price.distance ? `${price.distance} km` : 'N/A'}</span>
-                        </div>
-                        
-                        {/* Status */}
-                        <div className="space-y-1">
-                          <div className={`text-xs ${getAvailabilityColor(price.availability)}`}>
-                            {price.availability} availability
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {price.lastUpdated}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </>
           )}
         </div>
@@ -1043,6 +1145,183 @@ export default function MarketPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Reservation Sheet */}
+      <Sheet open={isReservationSheetOpen} onOpenChange={setIsReservationSheetOpen}>
+        <SheetContent className="w-[450px] sm:w-[500px] sm:max-w-[480px] rounded-l-sm h-full overflow-hidden flex flex-col">
+          {selectedProduct && (
+            <>
+              <SheetHeader className="space-y-3 p-6 pb-4 border-b flex-shrink-0">
+                <div className="flex items-center gap-3">
+                  <Package className="h-8 w-8 text-primary" />
+                  <div>
+                    <SheetTitle className="text-xl">Reserve Product</SheetTitle>
+                    <SheetDescription className="text-sm">
+                      Reserve {selectedProduct.title} from {selectedProduct.farmer?.name || 'farmer'}
+                    </SheetDescription>
+                  </div>
+                </div>
+              </SheetHeader>
+
+              <div className="flex-1 overflow-y-auto px-6">
+                <div className="space-y-6 py-6">
+                  {/* Product Details */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Product Details</h3>
+                    <Card className="p-4">
+                      <div className="space-y-3">
+                        <div className="flex items-center justify-between">
+                          <h4 className="font-medium text-lg">{selectedProduct.title}</h4>
+                          <Badge variant="outline" className="text-xs">
+                            {selectedProduct.cropType}
+                          </Badge>
+                        </div>
+                        
+                        <p className="text-sm text-muted-foreground">
+                          {selectedProduct.description}
+                        </p>
+                        
+                        <div className="grid grid-cols-2 gap-4 text-sm">
+                          <div>
+                            <span className="font-medium">Price per kg:</span>
+                            <div className="text-lg font-bold text-primary">
+                              LKR {selectedProduct.pricePerKg}
+                            </div>
+                          </div>
+                          <div>
+                            <span className="font-medium">Available:</span>
+                            <div className="text-lg font-semibold">
+                              {selectedProduct.availableQuantityKg} kg
+                            </div>
+                          </div>
+                        </div>
+                        
+                        <div className="text-sm">
+                          <span className="font-medium">Farmer:</span>
+                          <div className="flex items-center gap-2 mt-1">
+                            <span>{selectedProduct.farmer?.name || selectedProduct.farmer?.username}</span>
+                            {selectedProduct.farmer?.is_verified && (
+                              <Badge variant="secondary" className="text-xs">
+                                ✓ Verified
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        
+                        {selectedProduct.address && (
+                          <div className="flex items-center gap-2 text-sm">
+                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                            <span>{selectedProduct.address}</span>
+                          </div>
+                        )}
+                      </div>
+                    </Card>
+                  </div>
+
+                  <Separator />
+
+                  {/* Reservation Form */}
+                  <div>
+                    <h3 className="text-lg font-semibold mb-3">Reservation Details</h3>
+                    <div className="space-y-4">
+                      {/* Quantity Selector */}
+                      <div>
+                        <label className="text-sm font-medium mb-2 block">
+                          Quantity (kg)
+                        </label>
+                        <div className="flex items-center gap-3">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleQuantityChange(false)}
+                            disabled={reservationQuantity <= 1}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </Button>
+                          
+                          <div className="flex-1 text-center">
+                            <Input
+                              type="number"
+                              value={reservationQuantity}
+                              onChange={(e) => {
+                                const value = parseFloat(e.target.value)
+                                if (value >= 1 && value <= selectedProduct.availableQuantityKg) {
+                                  setReservationQuantity(value)
+                                }
+                              }}
+                              min="1"
+                              max={selectedProduct.availableQuantityKg}
+                              step="0.1"
+                              className="text-center"
+                            />
+                          </div>
+                          
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleQuantityChange(true)}
+                            disabled={reservationQuantity >= selectedProduct.availableQuantityKg}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Maximum available: {selectedProduct.availableQuantityKg} kg
+                        </p>
+                      </div>
+
+                      {/* Price Summary */}
+                      <Card className="p-4 bg-muted/50">
+                        <h4 className="font-medium mb-3">Price Summary</h4>
+                        <div className="space-y-2">
+                          <div className="flex justify-between text-sm">
+                            <span>Unit Price:</span>
+                            <span>LKR {selectedProduct.pricePerKg} per kg</span>
+                          </div>
+                          <div className="flex justify-between text-sm">
+                            <span>Quantity:</span>
+                            <span>{reservationQuantity} kg</span>
+                          </div>
+                          <Separator />
+                          <div className="flex justify-between font-semibold text-lg">
+                            <span>Total:</span>
+                            <span className="text-primary">
+                              LKR {(selectedProduct.pricePerKg * reservationQuantity).toFixed(2)}
+                            </span>
+                          </div>
+                        </div>
+                      </Card>
+
+                      {/* Reserve Button */}
+                      <Button
+                        onClick={handleCreateReservation}
+                        disabled={isReserving || reservationQuantity <= 0 || reservationQuantity > selectedProduct.availableQuantityKg}
+                        className="w-full"
+                        size="lg"
+                      >
+                        {isReserving ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Creating Reservation...
+                          </>
+                        ) : (
+                          <>
+                            <Package className="h-4 w-4 mr-2" />
+                            Reserve for LKR {(selectedProduct.pricePerKg * reservationQuantity).toFixed(2)}
+                          </>
+                        )}
+                      </Button>
+                      
+                      {/* Additional bottom padding for better scroll experience */}
+                      <div className="h-8"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
+        </SheetContent>
+      </Sheet>
     </div>
   )
 }

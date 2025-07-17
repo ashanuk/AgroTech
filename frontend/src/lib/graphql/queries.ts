@@ -359,6 +359,7 @@ export const GET_USERS = gql`
   query GetUsers {
     users {
       id
+      name
       username
       email
       avatar_url
@@ -374,6 +375,7 @@ export const GET_USER = gql`
   query GetUser($id: ID!) {
     user(id: $id) {
       id
+      name
       username
       email
       avatar_url
@@ -408,7 +410,7 @@ export const GET_PRODUCTS = gql`
       updatedAt
       farmer {
         id
-        username
+        name
         email
         avatar_url
         is_verified
@@ -439,7 +441,7 @@ export const GET_PRODUCT = gql`
       updatedAt
       farmer {
         id
-        username
+        name
         email
         avatar_url
         is_verified
@@ -471,11 +473,18 @@ export const SEARCH_PRODUCTS = gql`
       farmer {
         id
         username
+        name
         email
         avatar_url
         is_verified
       }
     }
+  }
+`;
+
+export const SEARCH_PRODUCT_SUGGESTIONS = gql`
+  query SearchProductSuggestions($query: String!, $limit: Int) {
+    searchProductSuggestions(query: $query, limit: $limit)
   }
 `;
 
@@ -501,7 +510,7 @@ export const GET_NEARBY_PRODUCTS = gql`
       updatedAt
       farmer {
         id
-        username
+        name
         email
         avatar_url
         is_verified
@@ -532,7 +541,7 @@ export const CREATE_PRODUCT_MUTATION = gql`
       updatedAt
       farmer {
         id
-        username
+        name
         email
         avatar_url
         is_verified
@@ -563,7 +572,7 @@ export const UPDATE_PRODUCT_MUTATION = gql`
       updatedAt
       farmer {
         id
-        username
+        name
         email
         avatar_url
         is_verified
@@ -575,6 +584,127 @@ export const UPDATE_PRODUCT_MUTATION = gql`
 export const DELETE_PRODUCT_MUTATION = gql`
   mutation DeleteProduct($id: ID!) {
     deleteProduct(id: $id)
+  }
+`;
+
+// Reservation Queries & Mutations
+export const GET_MY_RESERVATIONS = gql`
+  query GetMyReservations {
+    myReservations {
+      id
+      buyerId
+      productId
+      quantityKg
+      status
+      reservedAt
+      fulfilledAt
+      updatedAt
+      canCancel
+      product {
+        id
+        title
+        description
+        cropType
+        pricePerKg
+        unit
+        images
+        address
+        farmer {
+          id
+          name
+          username
+          email
+          is_verified
+        }
+      }
+    }
+  }
+`;
+
+export const GET_RESERVATIONS = gql`
+  query GetReservations($buyerId: String, $status: String) {
+    reservations(buyerId: $buyerId, status: $status) {
+      id
+      buyerId
+      productId
+      quantityKg
+      status
+      reservedAt
+      fulfilledAt
+      updatedAt
+      canCancel
+      buyer {
+        id
+        name
+        username
+        email
+        is_verified
+      }
+      product {
+        id
+        title
+        description
+        cropType
+        pricePerKg
+        unit
+        images
+        address
+      }
+    }
+  }
+`;
+
+export const CREATE_RESERVATION_MUTATION = gql`
+  mutation CreateReservation($input: CreateReservationInput!) {
+    createReservation(input: $input) {
+      id
+      buyerId
+      productId
+      quantityKg
+      status
+      reservedAt
+      fulfilledAt
+      updatedAt
+      product {
+        id
+        title
+        description
+        cropType
+        pricePerKg
+        unit
+        images
+        address
+        availableQuantityKg
+        farmer {
+          id
+          name
+          username
+          email
+          is_verified
+        }
+      }
+    }
+  }
+`;
+
+export const CANCEL_RESERVATION_MUTATION = gql`
+  mutation CancelReservation($id: ID!) {
+    cancelReservation(id: $id) {
+      id
+      status
+      updatedAt
+    }
+  }
+`;
+
+export const FULFILL_RESERVATION_MUTATION = gql`
+  mutation FulfillReservation($id: ID!) {
+    fulfillReservation(id: $id) {
+      id
+      status
+      fulfilledAt
+      updatedAt
+    }
   }
 `;
 
