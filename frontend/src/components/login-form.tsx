@@ -1,21 +1,21 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { useState } from "react"
-import { signIn } from "next-auth/react"
-import { useRouter } from "next/navigation"
-import { toast } from "sonner"
-import { TriangleAlert } from "lucide-react"
-import { Loader2 } from "lucide-react"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useState } from "react";
+import { signIn } from "next-auth/react";
+import { useRouter } from "next/navigation";
+import { toast } from "sonner";
+import { TriangleAlert } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { graphQLLogin } from "@/lib/graphql-auth";
 
 export function LoginForm({
   className,
   ...props
-}: React.ComponentProps<any>) {
-
+}: React.ComponentProps<"form">) {
   const router = useRouter();
 
   const [email, setEmail] = useState<string>("");
@@ -29,41 +29,39 @@ export function LoginForm({
     setError("");
 
     try {
-      const res = await signIn("credentials", {
-        redirect: false,
-        email,
-        password
-      });
-      
-      if (res.error) {
-        setError("Invalid email or password. Please try again.");
-        setPassword("");
-        setPending(false);
-        return;
-      }
+      // First, authenticate with GraphQL backend
+      const graphQLAuth = await graphQLLogin(email, password);
 
-      if (res?.ok) {
-        router.push("/");
-        toast.success("Login successful!");
-      } else {
-        // This is the correct way to handle credentials errors
-        if (res?.error === "CredentialsSignin") {
+      if (graphQLAuth.token) {
+        // Then sign in with NextAuth for session management
+        const res = await signIn("credentials", {
+          redirect: false,
+          email,
+          password,
+        });
+
+        if (res?.error) {
           setError("Invalid email or password. Please try again.");
-        } else {
-          setError("An unexpected error occurred. Please try again later.");
+          setPassword("");
+          setPending(false);
+          return;
         }
-        // Clear password field on failed attempt for security
-        setPassword("");
+
+        if (res?.ok) {
+          router.push("/");
+          toast.success("Login successful!");
+        } else {
+          setError("Authentication failed. Please try again.");
+        }
       }
     } catch (err) {
-      // Handle network errors or other exceptions from signIn
-      console.error("Sign-in function error:", err);
-      setError("Could not connect to the server. Please check your network.");
+      console.error("Authentication error:", err);
+      setError("Invalid email or password. Please try again.");
+      setPassword("");
     } finally {
-      // This will run regardless of success or failure
       setPending(false);
     }
-  }
+  };
 
   return (
     <>
@@ -95,7 +93,8 @@ export function LoginForm({
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="m@example.com"
-              required />
+              required
+            />
           </div>
           <div className="grid gap-3">
             <div className="flex items-center">
@@ -114,18 +113,19 @@ export function LoginForm({
               disabled={pending}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              required />
+              required
+            />
           </div>
-          <Button type="submit" className="w-full cursor-pointer" disabled={pending}>
-          {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {pending ? "Signing in..." : "Login"}
+          <Button
+            type="submit"
+            className="w-full cursor-pointer"
+            disabled={pending}
+          >
+            {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {pending ? "Signing in..." : "Login"}
           </Button>
-
         </div>
-
       </form>
-
-
 
       {/* <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t mt-6">
         <span className="bg-background text-muted-foreground relative z-10 px-2">
@@ -146,8 +146,7 @@ export function LoginForm({
         Login with GitHub
       </Button> */}
       <div className="flex flex-col gap-4 text-center mt-6">
-        <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
-        </div>
+        <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t"></div>
         <div className="text-center text-sm mt-4">
           Don&apos;t have an account?{" "}
           <a href="/signup" className="underline underline-offset-4">
@@ -155,7 +154,6 @@ export function LoginForm({
           </a>
         </div>
       </div>
-
     </>
-  )
+  );
 }

@@ -1,61 +1,97 @@
-"use client"
+"use client";
 
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-
-import { useState } from "react"
-import { toast } from "sonner"
-import { useRouter } from "next/navigation"
-import { TriangleAlert } from "lucide-react"
-import { signIn } from "next-auth/react"
+import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { signIn } from "next-auth/react";
+import { useState } from "react";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { TriangleAlert } from "lucide-react";
+import { graphQLRegister} from "@/lib/graphql-auth";
 
 export function SignupForm({
   className,
   ...props
-}: React.ComponentProps<any>) {
-
+}: React.ComponentProps<"form">) {
   const [form, setForm] = useState({
     name: "",
     email: "",
     password: "",
-    confirmPassword: ""
+    confirmPassword: "",
+    username: "",
   });
   const [pending, setPending] = useState(false);
-  const [error, setError] = useState("")
+  const [error, setError] = useState("");
 
   const router = useRouter();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setPending(true);
+    setError("");
 
-    const res = await fetch("/api/auth/signup", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
-    });
-    
-    const data = await res.json();
-    
-    if (res.ok) {
+    // Validate passwords match
+    if (form.password !== form.confirmPassword) {
+      setError("Passwords do not match");
       setPending(false);
-      toast.success(data.message);
-      router.push("/login");
-    } else if (res.status === 400) {
-      setError(data.message);
-      setPending(false);
-    } else if (res.status === 500) {
-      setError(data.message);
-      setPending(false);
+      return;
     }
 
-  }
+    try {
+      // Register user with GraphQL backend
+      const graphQLAuth = await graphQLRegister(
+        form.username || form.name, // Use username or fallback to name
+        form.email,
+        form.password
+      );
+
+      if (graphQLAuth.token) {
+
+        toast.success(`Account created successfully! 
+          Logging In...`);
+        // const graphQLLoginData = await graphQLLogin(form.email, form.password);
+        // Redirect to home page after successful registration
+        setForm({
+          name: "",
+          email: "",
+          password: "",
+          confirmPassword: "",
+          username: "",
+        });
+        // Sign in with NextAuth for session management
+        await signIn("credentials", {
+          redirect: false,
+          email: form.email,
+          password: form.password,
+        });
+        toast.success("Login successful!");
+        // Redirect to home page
+        setTimeout(() => {
+          router.push("/");
+        }, 1000);
+      }
+    } catch (err: unknown) {
+      console.error("Registration error:", err);
+      const error = err as Error;
+      if (error.message?.includes("already exists")) {
+        setError("User with this email or username already exists");
+      } else {
+        setError("Failed to create account. Please try again.");
+      }
+    } finally {
+      setPending(false);
+    }
+  };
 
   return (
     <>
-      <form onSubmit={handleSubmit} className={cn("flex flex-col gap-6", className)} {...props}>
+      <form
+        onSubmit={handleSubmit}
+        className={cn("flex flex-col gap-6", className)}
+        {...props}
+      >
         <div className="flex flex-col items-center gap-2 text-center">
           <h1 className="text-2xl font-bold">Create a new account</h1>
           <p className="text-muted-foreground text-sm">
@@ -75,10 +111,23 @@ export function SignupForm({
               id="name"
               type="text"
               disabled={pending}
-              placeholder="ABBC Perera"
+              placeholder="John Doe"
               value={form.name}
-              onChange={(e) => setForm({...form, name:e.target.value})}
-              required />
+              onChange={(e) => setForm({ ...form, name: e.target.value })}
+              required
+            />
+          </div>
+          <div className="grid gap-3">
+            <Label htmlFor="username">Username</Label>
+            <Input
+              id="username"
+              type="text"
+              disabled={pending}
+              placeholder="johndoe"
+              value={form.username}
+              onChange={(e) => setForm({ ...form, username: e.target.value })}
+              required
+            />
           </div>
           <div className="grid gap-3">
             <Label htmlFor="email">Email</Label>
@@ -87,9 +136,10 @@ export function SignupForm({
               type="email"
               disabled={pending}
               value={form.email}
-              onChange={(e) => setForm({...form, email:e.target.value})}
+              onChange={(e) => setForm({ ...form, email: e.target.value })}
               placeholder="m@example.com"
-              required />
+              required
+            />
           </div>
           <div className="grid gap-3">
             <Label htmlFor="password">Password</Label>
@@ -98,8 +148,9 @@ export function SignupForm({
               type="password"
               disabled={pending}
               value={form.password}
-              onChange={(e) => setForm({...form, password:e.target.value})}
-              required />
+              onChange={(e) => setForm({ ...form, password: e.target.value })}
+              required
+            />
           </div>
           <div className="grid gap-3">
             <Label htmlFor="password">Confirm Password</Label>
@@ -108,20 +159,25 @@ export function SignupForm({
               type="password"
               disabled={pending}
               value={form.confirmPassword}
-              onChange={(e) => setForm({...form, confirmPassword:e.target.value})}
-              required />
+              onChange={(e) =>
+                setForm({ ...form, confirmPassword: e.target.value })
+              }
+              required
+            />
           </div>
-          <Button type="submit" className="w-full cursor-pointer" disabled={pending}>
+          <Button
+            type="submit"
+            className="w-full cursor-pointer"
+            disabled={pending}
+          >
             Create Account
           </Button>
         </div>
       </form>
 
       <div className="flex flex-col gap-4 text-center mt-6">
+        <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t"></div>
 
-        <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
-        </div>
-        
         {/* 
 
         <Button 
@@ -144,9 +200,7 @@ export function SignupForm({
             Login
           </a>
         </div>
-
       </div>
-
     </>
-  )
+  );
 }
