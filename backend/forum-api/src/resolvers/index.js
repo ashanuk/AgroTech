@@ -6,6 +6,21 @@ const Product = require("../models/Product");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
+// Helper function to format farmer data
+const formatFarmerData = (farmer) => {
+  if (!farmer) return null;
+  
+  // Always return farmer data, but handle missing username gracefully
+  return {
+    id: farmer._id,
+    username: farmer.username || farmer.name || farmer.email || `user_${farmer._id}`, // Fallback chain
+    name: farmer.name || farmer.username || farmer.email || 'Unknown', // Fallback chain
+    email: farmer.email,
+    avatar_url: farmer.avatar_url,
+    is_verified: farmer.is_verified || false
+  };
+};
+
 const resolvers = {
   Query: {
     // Categories
@@ -256,6 +271,9 @@ const resolvers = {
           return null;
         }
 
+        // Format farmer data - this now always returns valid data
+        const farmerData = formatFarmerData(product.farmerId);
+
         const productObj = product.toObject();
         
         return {
@@ -273,13 +291,7 @@ const resolvers = {
           address: productObj.address,
           createdAt: productObj.createdAt,
           updatedAt: productObj.updatedAt,
-          farmer: {
-            id: product.farmerId._id,
-            username: product.farmerId.username,
-            email: product.farmerId.email,
-            avatar_url: product.farmerId.avatar_url,
-            is_verified: product.farmerId.is_verified
-          }
+          farmer: farmerData
         };
       }).filter(Boolean); // Remove null entries
     },
@@ -291,6 +303,9 @@ const resolvers = {
       if (!product.farmerId) {
         throw new Error("Product farmer not found");
       }
+      
+      // Format farmer data - this now always returns valid data
+      const farmerData = formatFarmerData(product.farmerId);
       
       const productObj = product.toObject();
       
@@ -309,25 +324,67 @@ const resolvers = {
         address: productObj.address,
         createdAt: productObj.createdAt,
         updatedAt: productObj.updatedAt,
-        farmer: {
-          id: product.farmerId._id,
-          username: product.farmerId.username,
-          email: product.farmerId.email,
-          avatar_url: product.farmerId.avatar_url,
-          is_verified: product.farmerId.is_verified
-        }
+        farmer: farmerData
       };
     },
 
     searchProducts: async (_, { query, limit = 20, offset = 0 }) => {
       try {
-        const products = await Product.find({
-          $text: { $search: query }
-        })
-        .populate("farmerId")
-        .sort({ score: { $meta: "textScore" } })
-        .limit(limit)
-        .skip(offset);
+        // If query is too short, return empty results
+        if (!query || query.trim().length < 1) {
+          return [];
+        }
+
+        const searchTerm = query.trim();
+        
+        // Create multiple search strategies for better matching
+        const searchQueries = [];
+        
+        // 1. Exact text search (for complete words)
+        if (searchTerm.length >= 3) {
+          searchQueries.push({
+            $text: { $search: searchTerm }
+          });
+        }
+        
+        // 2. Regex search for partial matching (case-insensitive)
+        const regexPattern = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
+        searchQueries.push({
+          $or: [
+            { title: { $regex: regexPattern } },
+            { description: { $regex: regexPattern } },
+            { cropType: { $regex: regexPattern } }
+          ]
+        });
+        
+        // 3. For very short queries (1-2 characters), search only title and cropType with starts-with pattern
+        if (searchTerm.length <= 2) {
+          const startsWithPattern = new RegExp(`^${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
+          searchQueries.push({
+            $or: [
+              { title: { $regex: startsWithPattern } },
+              { cropType: { $regex: startsWithPattern } }
+            ]
+          });
+        }
+        
+        // Combine all search strategies
+        const finalQuery = searchQueries.length > 1 ? { $or: searchQueries } : searchQueries[0];
+        
+        console.log('Search query:', JSON.stringify(finalQuery, null, 2));
+        
+        const products = await Product.find(finalQuery)
+          .populate("farmerId")
+          .sort({ 
+            // Prioritize exact title matches, then text score, then creation date
+            title: searchTerm.length <= 2 ? 1 : undefined,
+            score: searchTerm.length >= 3 ? { $meta: "textScore" } : undefined,
+            createdAt: -1 
+          })
+          .limit(limit)
+          .skip(offset);
+
+        console.log(`Found ${products.length} products for search: "${searchTerm}"`);
 
         return products.map(product => {
           // Check if farmerId exists and is populated
@@ -337,6 +394,9 @@ const resolvers = {
           }
 
           try {
+            // Format farmer data - this now always returns valid data
+            const farmerData = formatFarmerData(product.farmerId);
+
             // Extract the product object and handle the farmerId properly
             const productObj = product.toObject();
             
@@ -355,13 +415,7 @@ const resolvers = {
               address: productObj.address,
               createdAt: productObj.createdAt,
               updatedAt: productObj.updatedAt,
-              farmer: {
-                id: product.farmerId._id,
-                username: product.farmerId.username,
-                email: product.farmerId.email,
-                avatar_url: product.farmerId.avatar_url,
-                is_verified: product.farmerId.is_verified
-              }
+              farmer: farmerData
             };
           } catch (err) {
             console.error(`Error processing product ${product._id}:`, err);
@@ -396,6 +450,9 @@ const resolvers = {
           return null;
         }
 
+        // Format farmer data - this now always returns valid data
+        const farmerData = formatFarmerData(product.farmerId);
+
         const productObj = product.toObject();
         
         return {
@@ -413,15 +470,38 @@ const resolvers = {
           address: productObj.address,
           createdAt: productObj.createdAt,
           updatedAt: productObj.updatedAt,
-          farmer: {
-            id: product.farmerId._id,
-            username: product.farmerId.username,
-            email: product.farmerId.email,
-            avatar_url: product.farmerId.avatar_url,
-            is_verified: product.farmerId.is_verified
-          }
+          farmer: farmerData
         };
       }).filter(Boolean); // Remove null entries
+    },
+
+    // Search suggestions for auto-complete
+    searchProductSuggestions: async (_, { query, limit = 10 }) => {
+      try {
+        if (!query || query.trim().length < 1) {
+          return [];
+        }
+
+        const searchTerm = query.trim();
+        const regexPattern = new RegExp(`^${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
+        
+        // Get unique product titles and crop types that start with the search term
+        const [titleSuggestions, cropTypeSuggestions] = await Promise.all([
+          Product.distinct('title', { title: { $regex: regexPattern } }).limit(limit / 2),
+          Product.distinct('cropType', { cropType: { $regex: regexPattern } }).limit(limit / 2)
+        ]);
+        
+        // Combine and deduplicate suggestions
+        const allSuggestions = [...titleSuggestions, ...cropTypeSuggestions];
+        const uniqueSuggestions = [...new Set(allSuggestions)]
+          .filter(suggestion => suggestion && suggestion.toLowerCase().startsWith(searchTerm.toLowerCase()))
+          .slice(0, limit);
+        
+        return uniqueSuggestions;
+      } catch (error) {
+        console.error('Error in searchProductSuggestions:', error);
+        return [];
+      }
     },
   },
 

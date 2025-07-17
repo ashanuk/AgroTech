@@ -50,7 +50,7 @@ interface Product {
   updatedAt: string
   farmer: {
     id: string
-    username: string
+    name: string
     email: string
     avatar_url?: string
     is_verified: boolean
@@ -411,7 +411,7 @@ export default function MarketPage() {
         currency: 'LKR',
         location: product.address || 'Sri Lanka',
         district: extractDistrict(product.address || ''),
-        market: `${product.farmer?.username || 'Farm'}'s Farm`,
+        market: `${product.farmer?.name || 'Farm'}'s Farm`,
         date: formattedDate,
         trend: 'stable' as const,
         quality: determineQuality(product.pricePerKg),
@@ -510,8 +510,8 @@ export default function MarketPage() {
       return
     }
 
-    // Refetch search results when query changes
-    if (query.length >= 2) {
+    // Refetch search results when query changes - now triggers on single character
+    if (query.length >= 1) {
       refetchSearch({ query, limit: 20, offset: 0 })
     }
   }
@@ -750,93 +750,103 @@ export default function MarketPage() {
                 </span>
               </h2>
               
-              {/* Group results by product */}
-              {Object.entries(
-                getFilteredResults().reduce((groups: Record<string, MarketPrice[]>, price) => {
-                  if (!groups[price.product]) {
-                    groups[price.product] = []
-                  }
-                  groups[price.product].push(price)
-                  return groups
-                }, {})
-              ).map(([product, prices]: [string, MarketPrice[]]) => (
-                <div key={product} className="mb-8">
-                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                    <ShoppingCart className="h-5 w-5" />
-                    {product}
-                    <span className="text-sm font-normal text-muted-foreground">
-                      ({prices.length} farm{prices.length > 1 ? 's' : ''})
-                    </span>
-                  </h3>
-                  
-                  {/* Grid Header */}
-                  <div className="bg-muted/50 rounded-t-lg p-4 border">
-                    <div className="grid grid-cols-6 gap-4 text-sm font-medium text-muted-foreground">
-                      <div>Farmer/Market</div>
-                      <div>Price</div>
-                      <div>Quality</div>
-                      <div>Location</div>
-                      <div>Distance</div>
-                      <div>Status</div>
+              {getFilteredResults().length === 0 ? (
+                <div className="text-center py-12">
+                  <ShoppingCart className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                  <h3 className="text-lg font-medium mb-2">No products found</h3>
+                  <p className="text-muted-foreground">
+                    Try searching with different keywords or check your spelling.
+                  </p>
+                </div>
+              ) : (
+                /* Group results by product */
+                Object.entries(
+                  getFilteredResults().reduce((groups: Record<string, MarketPrice[]>, price) => {
+                    if (!groups[price.product]) {
+                      groups[price.product] = []
+                    }
+                    groups[price.product].push(price)
+                    return groups
+                  }, {})
+                ).map(([product, prices]: [string, MarketPrice[]]) => (
+                  <div key={product} className="mb-8">
+                    <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                      <ShoppingCart className="h-5 w-5" />
+                      {product}
+                      <span className="text-sm font-normal text-muted-foreground">
+                        ({prices.length} farm{prices.length > 1 ? 's' : ''})
+                      </span>
+                    </h3>
+                    
+                    {/* Grid Header */}
+                    <div className="bg-muted/50 rounded-t-lg p-4 border">
+                      <div className="grid grid-cols-6 gap-4 text-sm font-medium text-muted-foreground">
+                        <div>Farmer/Market</div>
+                        <div>Price</div>
+                        <div>Quality</div>
+                        <div>Location</div>
+                        <div>Distance</div>
+                        <div>Status</div>
+                      </div>
+                    </div>
+                    
+                    {/* Grid Rows */}
+                    <div className="border border-t-0 rounded-b-lg">
+                      {prices.map((price, index) => (
+                        <div 
+                          key={price.id} 
+                          className={`grid grid-cols-6 gap-4 p-4 hover:bg-muted/30 transition-colors ${
+                            index !== prices.length - 1 ? 'border-b' : ''
+                          }`}
+                        >
+                          {/* Market */}
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium">{price.market}</span>
+                            {getTrendIcon(price.trend)}
+                          </div>
+                          
+                          {/* Price */}
+                          <div className="flex items-center gap-2">
+                            <span className="text-lg font-bold text-primary">
+                              {price.currency} {price.price}
+                            </span>
+                            <span className="text-xs text-muted-foreground">per {price.unit}</span>
+                          </div>
+                          
+                          {/* Quality */}
+                          <div>
+                            <Badge variant={getQualityBadge(price.quality)} className="text-xs">
+                              {price.quality}
+                            </Badge>
+                          </div>
+                          
+                          {/* Location */}
+                          <div className="flex items-center gap-1 text-sm">
+                            <MapPin className="h-3 w-3 text-muted-foreground" />
+                            <span className="truncate">{price.location}</span>
+                          </div>
+                          
+                          {/* Distance */}
+                          <div className="flex items-center gap-1 text-sm">
+                            <Navigation className="h-3 w-3 text-muted-foreground" />
+                            <span>{price.distance ? `${price.distance} km` : 'N/A'}</span>
+                          </div>
+                          
+                          {/* Status */}
+                          <div className="space-y-1">
+                            <div className={`text-xs ${getAvailabilityColor(price.availability)}`}>
+                              {price.availability} availability
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {price.lastUpdated}
+                            </div>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
-                  
-                  {/* Grid Rows */}
-                  <div className="border border-t-0 rounded-b-lg">
-                    {prices.map((price, index) => (
-                      <div 
-                        key={price.id} 
-                        className={`grid grid-cols-6 gap-4 p-4 hover:bg-muted/30 transition-colors ${
-                          index !== prices.length - 1 ? 'border-b' : ''
-                        }`}
-                      >
-                        {/* Market */}
-                        <div className="flex items-center gap-2">
-                          <span className="font-medium">{price.market}</span>
-                          {getTrendIcon(price.trend)}
-                        </div>
-                        
-                        {/* Price */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-primary">
-                            {price.currency} {price.price}
-                          </span>
-                          <span className="text-xs text-muted-foreground">per {price.unit}</span>
-                        </div>
-                        
-                        {/* Quality */}
-                        <div>
-                          <Badge variant={getQualityBadge(price.quality)} className="text-xs">
-                            {price.quality}
-                          </Badge>
-                        </div>
-                        
-                        {/* Location */}
-                        <div className="flex items-center gap-1 text-sm">
-                          <MapPin className="h-3 w-3 text-muted-foreground" />
-                          <span className="truncate">{price.location}</span>
-                        </div>
-                        
-                        {/* Distance */}
-                        <div className="flex items-center gap-1 text-sm">
-                          <Navigation className="h-3 w-3 text-muted-foreground" />
-                          <span>{price.distance ? `${price.distance} km` : 'N/A'}</span>
-                        </div>
-                        
-                        {/* Status */}
-                        <div className="space-y-1">
-                          <div className={`text-xs ${getAvailabilityColor(price.availability)}`}>
-                            {price.availability} availability
-                          </div>
-                          <div className="text-xs text-muted-foreground">
-                            {price.lastUpdated}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ))}
+                ))
+              )}
             </>
           )}
         </div>

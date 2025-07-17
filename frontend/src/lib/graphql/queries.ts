@@ -359,6 +359,7 @@ export const GET_USERS = gql`
   query GetUsers {
     users {
       id
+      name
       username
       email
       avatar_url
@@ -374,6 +375,7 @@ export const GET_USER = gql`
   query GetUser($id: ID!) {
     user(id: $id) {
       id
+      name
       username
       email
       avatar_url
@@ -408,7 +410,7 @@ export const GET_PRODUCTS = gql`
       updatedAt
       farmer {
         id
-        username
+        name
         email
         avatar_url
         is_verified
@@ -439,7 +441,7 @@ export const GET_PRODUCT = gql`
       updatedAt
       farmer {
         id
-        username
+        name
         email
         avatar_url
         is_verified
@@ -471,11 +473,18 @@ export const SEARCH_PRODUCTS = gql`
       farmer {
         id
         username
+        name
         email
         avatar_url
         is_verified
       }
     }
+  }
+`;
+
+export const SEARCH_PRODUCT_SUGGESTIONS = gql`
+  query SearchProductSuggestions($query: String!, $limit: Int) {
+    searchProductSuggestions(query: $query, limit: $limit)
   }
 `;
 
@@ -501,7 +510,7 @@ export const GET_NEARBY_PRODUCTS = gql`
       updatedAt
       farmer {
         id
-        username
+        name
         email
         avatar_url
         is_verified
@@ -532,7 +541,7 @@ export const CREATE_PRODUCT_MUTATION = gql`
       updatedAt
       farmer {
         id
-        username
+        name
         email
         avatar_url
         is_verified
@@ -563,7 +572,7 @@ export const UPDATE_PRODUCT_MUTATION = gql`
       updatedAt
       farmer {
         id
-        username
+        name
         email
         avatar_url
         is_verified

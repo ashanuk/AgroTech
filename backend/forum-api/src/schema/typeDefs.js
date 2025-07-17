@@ -4,6 +4,7 @@ const typeDefs = gql`
   type User {
     id: ID!
     username: String!
+    name: String
     email: String!
     avatar_url: String
     bio: String
@@ -133,6 +134,7 @@ const typeDefs = gql`
 
   input RegisterInput {
     username: String!
+    name: String
     email: String!
     password: String!
   }
@@ -170,6 +172,7 @@ const typeDefs = gql`
     products(limit: Int, offset: Int, cropType: String, farmerId: String): [Product!]!
     product(id: ID!): Product
     searchProducts(query: String!, limit: Int, offset: Int): [Product!]!
+    searchProductSuggestions(query: String!, limit: Int): [String!]!
     nearbyProducts(longitude: Float!, latitude: Float!, maxDistance: Float, limit: Int): [Product!]!
   }
 
