@@ -78,6 +78,20 @@ const typeDefs = gql`
     reply_count: Int!
   }
 
+  type Reservation {
+    id: ID!
+    buyerId: String!
+    buyer: User!
+    productId: String!
+    product: Product!
+    quantityKg: Float!
+    status: String!
+    reservedAt: String!
+    fulfilledAt: String
+    updatedAt: String!
+    canCancel: Boolean!
+  }
+
   input CreateCategoryInput {
     name: String!
     description: String!
@@ -132,6 +146,11 @@ const typeDefs = gql`
     address: String
   }
 
+  input CreateReservationInput {
+    productId: String!
+    quantityKg: Float!
+  }
+
   input RegisterInput {
     username: String!
     name: String
@@ -174,6 +193,11 @@ const typeDefs = gql`
     searchProducts(query: String!, limit: Int, offset: Int): [Product!]!
     searchProductSuggestions(query: String!, limit: Int): [String!]!
     nearbyProducts(longitude: Float!, latitude: Float!, maxDistance: Float, limit: Int): [Product!]!
+
+    # Reservations
+    reservations(buyerId: String, status: String): [Reservation!]!
+    reservation(id: ID!): Reservation
+    myReservations: [Reservation!]!
   }
 
   type Mutation {
@@ -204,6 +228,11 @@ const typeDefs = gql`
     createProduct(input: CreateProductInput!): Product!
     updateProduct(id: ID!, input: UpdateProductInput!): Product!
     deleteProduct(id: ID!): Boolean!
+
+    # Reservations
+    createReservation(input: CreateReservationInput!): Reservation!
+    cancelReservation(id: ID!): Reservation!
+    fulfillReservation(id: ID!): Reservation!
   }
 `;
 

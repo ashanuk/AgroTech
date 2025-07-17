@@ -3,6 +3,7 @@ const Category = require("../models/Category");
 const Thread = require("../models/Thread");
 const Post = require("../models/Post");
 const Product = require("../models/Product");
+const Reservation = require("../models/Reservation");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
@@ -502,6 +503,218 @@ const resolvers = {
         console.error('Error in searchProductSuggestions:', error);
         return [];
       }
+    },
+
+    // Reservations
+    reservations: async (_, { buyerId, status }) => {
+      const filter = {};
+      if (buyerId) filter.buyerId = buyerId;
+      if (status) filter.status = status;
+      
+      const reservations = await Reservation.find(filter)
+        .populate("buyerId")
+        .populate({
+          path: "productId",
+          populate: {
+            path: "farmerId",
+            model: "User"
+          }
+        })
+        .sort({ reservedAt: -1 });
+
+      return reservations.map(reservation => {
+        // Check if product and farmer exist
+        if (!reservation.productId) {
+          throw new Error("Product not found for reservation");
+        }
+        
+        if (!reservation.productId.farmerId) {
+          throw new Error("Farmer not found for product");
+        }
+
+        // Format farmer data using the helper function
+        const farmerData = formatFarmerData(reservation.productId.farmerId);
+
+        // Check if reservation can be cancelled (within 30 minutes and status is reserved)
+        const now = new Date();
+        const reservationTime = new Date(reservation.reservedAt);
+        const timeDifferenceMs = now - reservationTime;
+        const thirtyMinutesMs = 30 * 60 * 1000;
+        const canCancel = reservation.status === "reserved" && timeDifferenceMs <= thirtyMinutesMs;
+
+        return {
+          id: reservation._id,
+          buyerId: reservation.buyerId._id.toString(),
+          buyer: {
+            id: reservation.buyerId._id,
+            username: reservation.buyerId.username,
+            name: reservation.buyerId.name || reservation.buyerId.username,
+            email: reservation.buyerId.email,
+            avatar_url: reservation.buyerId.avatar_url,
+            is_verified: reservation.buyerId.is_verified || false
+          },
+          productId: reservation.productId._id.toString(),
+          product: {
+            id: reservation.productId._id,
+            farmerId: reservation.productId.farmerId._id.toString(),
+            title: reservation.productId.title,
+            description: reservation.productId.description,
+            cropType: reservation.productId.cropType,
+            pricePerKg: reservation.productId.pricePerKg,
+            unit: reservation.productId.unit,
+            images: reservation.productId.images || [],
+            location: reservation.productId.location,
+            address: reservation.productId.address,
+            createdAt: reservation.productId.createdAt,
+            updatedAt: reservation.productId.updatedAt,
+            farmer: farmerData
+          },
+          quantityKg: reservation.quantityKg,
+          status: reservation.status,
+          reservedAt: reservation.reservedAt.toISOString(),
+          fulfilledAt: reservation.fulfilledAt ? reservation.fulfilledAt.toISOString() : null,
+          updatedAt: reservation.updatedAt.toISOString(),
+          canCancel: canCancel
+        };
+      });
+    },
+
+    reservation: async (_, { id }) => {
+      const reservation = await Reservation.findById(id)
+        .populate("buyerId")
+        .populate({
+          path: "productId",
+          populate: {
+            path: "farmerId",
+            model: "User"
+          }
+        });
+      
+      if (!reservation) throw new Error("Reservation not found");
+
+      // Check if product and farmer exist
+      if (!reservation.productId) {
+        throw new Error("Product not found for reservation");
+      }
+      
+      if (!reservation.productId.farmerId) {
+        throw new Error("Farmer not found for product");
+      }
+
+      // Format farmer data using the helper function
+      const farmerData = formatFarmerData(reservation.productId.farmerId);
+
+      // Check if reservation can be cancelled (within 30 minutes and status is reserved)
+      const now = new Date();
+      const reservationTime = new Date(reservation.reservedAt);
+      const timeDifferenceMs = now - reservationTime;
+      const thirtyMinutesMs = 30 * 60 * 1000;
+      const canCancel = reservation.status === "reserved" && timeDifferenceMs <= thirtyMinutesMs;
+
+      return {
+        id: reservation._id,
+        buyerId: reservation.buyerId._id.toString(),
+        buyer: {
+          id: reservation.buyerId._id,
+          username: reservation.buyerId.username,
+          name: reservation.buyerId.name || reservation.buyerId.username,
+          email: reservation.buyerId.email,
+          avatar_url: reservation.buyerId.avatar_url,
+          is_verified: reservation.buyerId.is_verified || false
+        },
+        productId: reservation.productId._id.toString(),
+        product: {
+          id: reservation.productId._id,
+          farmerId: reservation.productId.farmerId._id.toString(),
+          title: reservation.productId.title,
+          description: reservation.productId.description,
+          cropType: reservation.productId.cropType,
+          pricePerKg: reservation.productId.pricePerKg,
+          unit: reservation.productId.unit,
+          images: reservation.productId.images || [],
+          location: reservation.productId.location,
+          address: reservation.productId.address,
+          createdAt: reservation.productId.createdAt,
+          updatedAt: reservation.productId.updatedAt,
+          farmer: farmerData
+        },
+        quantityKg: reservation.quantityKg,
+        status: reservation.status,
+        reservedAt: reservation.reservedAt.toISOString(),
+        fulfilledAt: reservation.fulfilledAt ? reservation.fulfilledAt.toISOString() : null,
+        updatedAt: reservation.updatedAt.toISOString(),
+        canCancel: canCancel
+      };
+    },
+
+    myReservations: async (_, __, { user }) => {
+      if (!user) throw new Error("Not authenticated");
+      
+      const reservations = await Reservation.find({ buyerId: user._id })
+        .populate({
+          path: "productId",
+          populate: {
+            path: "farmerId",
+            model: "User"
+          }
+        })
+        .sort({ reservedAt: -1 });
+
+      return reservations.map(reservation => {
+        // Check if product and farmer exist
+        if (!reservation.productId) {
+          throw new Error("Product not found for reservation");
+        }
+        
+        if (!reservation.productId.farmerId) {
+          throw new Error("Farmer not found for product");
+        }
+
+        // Format farmer data using the helper function
+        const farmerData = formatFarmerData(reservation.productId.farmerId);
+
+        // Check if reservation can be cancelled (within 30 minutes and status is reserved)
+        const now = new Date();
+        const reservationTime = new Date(reservation.reservedAt);
+        const timeDifferenceMs = now - reservationTime;
+        const thirtyMinutesMs = 30 * 60 * 1000;
+        const canCancel = reservation.status === "reserved" && timeDifferenceMs <= thirtyMinutesMs;
+
+        return {
+          id: reservation._id,
+          buyerId: reservation.buyerId.toString(),
+          buyer: {
+            id: user._id,
+            username: user.username,
+            name: user.name || user.username,
+            email: user.email,
+            avatar_url: user.avatar_url,
+            is_verified: user.is_verified || false
+          },
+          productId: reservation.productId._id.toString(),
+          product: {
+            id: reservation.productId._id,
+            farmerId: reservation.productId.farmerId._id.toString(),
+            title: reservation.productId.title,
+            description: reservation.productId.description,
+            cropType: reservation.productId.cropType,
+            pricePerKg: reservation.productId.pricePerKg,
+            unit: reservation.productId.unit,
+            images: reservation.productId.images || [],
+            location: reservation.productId.location,
+            address: reservation.productId.address,
+            createdAt: reservation.productId.createdAt,
+            updatedAt: reservation.productId.updatedAt,
+            farmer: farmerData
+          },
+          quantityKg: reservation.quantityKg,
+          status: reservation.status,
+          reservedAt: reservation.reservedAt.toISOString(),
+          fulfilledAt: reservation.fulfilledAt ? reservation.fulfilledAt.toISOString() : null,
+          updatedAt: reservation.updatedAt.toISOString(),
+          canCancel: canCancel
+        };
+      });
     },
   },
 
@@ -1026,6 +1239,216 @@ const resolvers = {
 
       await Product.findByIdAndDelete(id);
       return true;
+    },
+
+    // Reservations
+    createReservation: async (_, { input }, { user }) => {
+      if (!user) throw new Error("Not authenticated");
+      
+      const { productId, quantityKg } = input;
+
+      // Check if product exists
+      const product = await Product.findById(productId);
+      if (!product) throw new Error("Product not found");
+
+      // Check if there's enough quantity available
+      if (product.availableQuantityKg < quantityKg) {
+        throw new Error(`Not enough quantity available. Only ${product.availableQuantityKg} kg available.`);
+      }
+
+      // Check if user is not trying to reserve their own product
+      if (product.farmerId.toString() === user._id.toString()) {
+        throw new Error("You cannot reserve your own product");
+      }
+
+      // Create reservation
+      const reservation = new Reservation({
+        buyerId: user._id,
+        productId: productId,
+        quantityKg: quantityKg,
+        status: "reserved",
+        reservedAt: new Date()
+      });
+
+      await reservation.save();
+
+      // Reduce available quantity from product
+      product.availableQuantityKg -= quantityKg;
+      await product.save();
+
+      // Populate the reservation data
+      await reservation.populate("buyerId");
+      await reservation.populate("productId");
+
+      // Get updated product data (since the populated productId still has old values)
+      const updatedProduct = await Product.findById(productId).populate("farmerId");
+
+      return {
+        id: reservation._id,
+        buyerId: user._id.toString(),
+        buyer: {
+          id: user._id,
+          username: user.username,
+          name: user.name || user.username,
+          email: user.email,
+          avatar_url: user.avatar_url,
+          is_verified: user.is_verified || false
+        },
+        productId: reservation.productId._id.toString(),
+        product: {
+          id: updatedProduct._id,
+          farmerId: updatedProduct.farmerId._id.toString(),
+          title: updatedProduct.title,
+          description: updatedProduct.description,
+          cropType: updatedProduct.cropType,
+          pricePerKg: updatedProduct.pricePerKg,
+          totalQuantityKg: updatedProduct.totalQuantityKg,
+          availableQuantityKg: updatedProduct.availableQuantityKg,
+          unit: updatedProduct.unit,
+          images: updatedProduct.images || [],
+          location: updatedProduct.location,
+          address: updatedProduct.address,
+          createdAt: updatedProduct.createdAt,
+          updatedAt: updatedProduct.updatedAt,
+          farmer: formatFarmerData(updatedProduct.farmerId)
+        },
+        quantityKg: reservation.quantityKg,
+        status: reservation.status,
+        reservedAt: reservation.reservedAt.toISOString(),
+        fulfilledAt: reservation.fulfilledAt ? reservation.fulfilledAt.toISOString() : null,
+        updatedAt: reservation.updatedAt.toISOString()
+      };
+    },
+
+    cancelReservation: async (_, { id }, { user }) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const reservation = await Reservation.findById(id).populate("productId");
+      if (!reservation) throw new Error("Reservation not found");
+
+      // Check if user owns the reservation
+      if (reservation.buyerId.toString() !== user._id.toString()) {
+        throw new Error("Not authorized to cancel this reservation");
+      }
+
+      // Can only cancel if reservation is still active
+      if (reservation.status !== "reserved") {
+        throw new Error("Can only cancel active reservations");
+      }
+
+      // Check if reservation is within 30 minutes (30 * 60 * 1000 = 1800000 milliseconds)
+      const now = new Date();
+      const reservationTime = new Date(reservation.reservedAt);
+      const timeDifferenceMs = now - reservationTime;
+      const thirtyMinutesMs = 30 * 60 * 1000;
+
+      if (timeDifferenceMs > thirtyMinutesMs) {
+        throw new Error("Reservations can only be cancelled within 30 minutes of booking");
+      }
+
+      // Return quantity to product
+      const product = await Product.findById(reservation.productId._id);
+      if (product) {
+        product.availableQuantityKg += reservation.quantityKg;
+        await product.save();
+      }
+
+      // Update reservation status
+      reservation.status = "cancelled";
+      await reservation.save();
+
+      await reservation.populate("buyerId");
+
+      return {
+        id: reservation._id,
+        buyerId: reservation.buyerId._id.toString(),
+        buyer: {
+          id: reservation.buyerId._id,
+          username: reservation.buyerId.username,
+          name: reservation.buyerId.name || reservation.buyerId.username,
+          email: reservation.buyerId.email,
+          avatar_url: reservation.buyerId.avatar_url,
+          is_verified: reservation.buyerId.is_verified || false
+        },
+        productId: reservation.productId._id.toString(),
+        product: {
+          id: reservation.productId._id,
+          farmerId: reservation.productId.farmerId.toString(),
+          title: reservation.productId.title,
+          description: reservation.productId.description,
+          cropType: reservation.productId.cropType,
+          pricePerKg: reservation.productId.pricePerKg,
+          unit: reservation.productId.unit,
+          images: reservation.productId.images || [],
+          location: reservation.productId.location,
+          address: reservation.productId.address,
+          createdAt: reservation.productId.createdAt,
+          updatedAt: reservation.productId.updatedAt
+        },
+        quantityKg: reservation.quantityKg,
+        status: reservation.status,
+        reservedAt: reservation.reservedAt.toISOString(),
+        fulfilledAt: reservation.fulfilledAt ? reservation.fulfilledAt.toISOString() : null,
+        updatedAt: reservation.updatedAt.toISOString()
+      };
+    },
+
+    fulfillReservation: async (_, { id }, { user }) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const reservation = await Reservation.findById(id)
+        .populate("buyerId")
+        .populate("productId");
+      
+      if (!reservation) throw new Error("Reservation not found");
+
+      // Check if user is the farmer/owner of the product
+      if (reservation.productId.farmerId.toString() !== user._id.toString()) {
+        throw new Error("Only the product owner can fulfill reservations");
+      }
+
+      // Can only fulfill if reservation is still active
+      if (reservation.status !== "reserved") {
+        throw new Error("Can only fulfill active reservations");
+      }
+
+      // Update reservation status
+      reservation.status = "fulfilled";
+      reservation.fulfilledAt = new Date();
+      await reservation.save();
+
+      return {
+        id: reservation._id,
+        buyerId: reservation.buyerId._id.toString(),
+        buyer: {
+          id: reservation.buyerId._id,
+          username: reservation.buyerId.username,
+          name: reservation.buyerId.name || reservation.buyerId.username,
+          email: reservation.buyerId.email,
+          avatar_url: reservation.buyerId.avatar_url,
+          is_verified: reservation.buyerId.is_verified || false
+        },
+        productId: reservation.productId._id.toString(),
+        product: {
+          id: reservation.productId._id,
+          farmerId: reservation.productId.farmerId.toString(),
+          title: reservation.productId.title,
+          description: reservation.productId.description,
+          cropType: reservation.productId.cropType,
+          pricePerKg: reservation.productId.pricePerKg,
+          unit: reservation.productId.unit,
+          images: reservation.productId.images || [],
+          location: reservation.productId.location,
+          address: reservation.productId.address,
+          createdAt: reservation.productId.createdAt,
+          updatedAt: reservation.productId.updatedAt
+        },
+        quantityKg: reservation.quantityKg,
+        status: reservation.status,
+        reservedAt: reservation.reservedAt.toISOString(),
+        fulfilledAt: reservation.fulfilledAt ? reservation.fulfilledAt.toISOString() : null,
+        updatedAt: reservation.updatedAt.toISOString()
+      };
     },
   },
 };

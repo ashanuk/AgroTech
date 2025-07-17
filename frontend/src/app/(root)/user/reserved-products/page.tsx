@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { PackageCheck, XCircle, History, DollarSign, Filter, MessageSquare, Star, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { useQuery, useMutation } from "@apollo/client";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,41 +23,82 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { useSession } from "next-auth/react";
+import { GET_MY_RESERVATIONS, CANCEL_RESERVATION_MUTATION } from "@/lib/graphql/queries";
 
-// Combined type for reservation with product details - Updated to match API response
+// Utility function to safely format dates
+const formatDate = (dateString: string): string => {
+  try {
+    // Check if it's a Unix timestamp (number as string)
+    const timestamp = parseInt(dateString);
+    if (!isNaN(timestamp) && timestamp.toString() === dateString) {
+      // It's a timestamp, convert it
+      const date = new Date(timestamp);
+      if (!isNaN(date.getTime())) {
+        return date.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+    }
+    
+    // Handle various date formats
+    const date = new Date(dateString);
+    
+    // Check if the date is valid
+    if (isNaN(date.getTime())) {
+      // Try parsing as ISO string or other common formats
+      const isoDate = new Date(dateString.replace(' ', 'T'));
+      if (!isNaN(isoDate.getTime())) {
+        return isoDate.toLocaleDateString('en-US', {
+          year: 'numeric',
+          month: 'short',
+          day: 'numeric'
+        });
+      }
+      // If still invalid, return the original string
+      return dateString;
+    }
+    
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  } catch (error) {
+    console.error('Date formatting error:', error);
+    return dateString;
+  }
+};
+
+// Type for reservation with product details - Updated to match GraphQL response
 type ReservedProduct = {
-  _id: string;
+  id: string;
   buyerId: string;
-  productId: {
-    _id: string;
-    farmerId: {
-      _id: string;
-      name: string;
-      email: string;
-      phone: string;
-      address: string;
-    };
+  productId: string;
+  quantityKg: number;
+  status: "reserved" | "cancelled" | "fulfilled";
+  reservedAt: string;
+  fulfilledAt?: string;
+  updatedAt: string;
+  canCancel: boolean;
+  product: {
+    id: string;
     title: string;
     description: string;
     cropType: string;
     pricePerKg: number;
-    totalQuantityKg: number;
-    availableQuantityKg: number;
     unit: string;
     images: string[];
-    location?: {
-      type: 'Point';
-      coordinates: [number, number]; // [longitude, latitude]
+    address?: string;
+    farmer: {
+      id: string;
+      name?: string;
+      username?: string;
+      email: string;
+      is_verified: boolean;
     };
-    address: string;
-    createdAt: string;
-    updatedAt: string;
   };
-  quantityKg: number;
-  status: "reserved" | "cancelled" | "fulfilled";
-  reservedAt: Date;
-  fulfilledAt?: Date;
 };
 
 const getStatusStyles = (status: ReservedProduct['status']) => {
@@ -73,73 +115,37 @@ const getStatusStyles = (status: ReservedProduct['status']) => {
 };
 
 export default function ReservedProductsPage() {
-  const { data: session, status: sessionStatus } = useSession();
-  const [reservations, setReservations] = useState<ReservedProduct[]>([]);
   const [filter, setFilter] = useState("all");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
   const router = useRouter();
-  
-  useEffect(() => {
-    const fetchReservations = async () => {
-      if (sessionStatus === 'authenticated' && session?.user?.id) {
-        try {
-          setLoading(true);
-          const response = await fetch(`/api/reservations?buyerId=${session.user.id}`);
-          if (!response.ok) {
-            throw new Error('Failed to fetch reservations');
-          }
-          const data = await response.json();
-          
-          // Convert date strings to Date objects and handle the API response structure
-          const formattedReservations = data.data.map((res: any) => ({
-            ...res,
-            reservedAt: new Date(res.reservedAt),
-            fulfilledAt: res.fulfilledAt ? new Date(res.fulfilledAt) : undefined,
-            // Ensure pricePerKg is available at reservation level, fallback to product price
-            pricePerKg: res.pricePerKg || res.productId?.pricePerKg || 0,
-          }));
-          
-          setReservations(formattedReservations);
-          console.log("Fetched Reservations:", formattedReservations);
-          setError(null);
-        } catch (err) {
-          setError(err instanceof Error ? err.message : 'An unknown error occurred');
-        } finally {
-          setLoading(false);
-        }
-      } else if (sessionStatus === 'unauthenticated') {
-        setLoading(false);
-        setError("Please log in to see your reservations.");
-      }
-    };
 
-    fetchReservations();
-  }, [session, sessionStatus]);
+  // GraphQL queries and mutations
+  const { 
+    loading, 
+    error, 
+    data, 
+    refetch 
+  } = useQuery(GET_MY_RESERVATIONS);
+
+  const [cancelReservation] = useMutation(CANCEL_RESERVATION_MUTATION, {
+    onCompleted: () => {
+      toast.success("Reservation cancelled successfully!");
+      refetch(); // Refetch the reservations list
+    },
+    onError: (error) => {
+      console.error("Error cancelling reservation:", error);
+      toast.error("Failed to cancel reservation. Please try again.");
+    }
+  });
+
+  const reservations: ReservedProduct[] = data?.myReservations || [];
 
   const handleCancelReservation = async (reservationId: string) => {
     try {
-      const response = await fetch(`/api/reservations?id=${reservationId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'cancelled' }),
+      await cancelReservation({
+        variables: { id: reservationId }
       });
-
-      if (!response.ok) {
-        throw new Error('Failed to cancel reservation');
-      }
-
-      setReservations(prev =>
-        prev.map(res =>
-          res._id === reservationId ? { ...res, status: "cancelled" } : res
-        )
-      );
-      
-      toast.success("Reservation cancelled successfully!");
     } catch (error) {
       console.error("Error cancelling reservation:", error);
-      toast.error("Failed to cancel reservation. Please try again.");
     }
   };
 
@@ -150,9 +156,9 @@ export default function ReservedProductsPage() {
   const activeReservations = reservations.filter(r => r.status === 'reserved').length;
   const totalSpent = reservations
     .filter(r => r.status === 'fulfilled')
-    .reduce((sum, r) => sum + r.quantityKg * r.productId.pricePerKg, 0);
+    .reduce((sum, r) => sum + r.quantityKg * r.product.pricePerKg, 0);
 
-  if (sessionStatus === 'loading' || loading) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin" />
@@ -163,12 +169,10 @@ export default function ReservedProductsPage() {
   if (error) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <p className="text-red-500">{error}</p>
+        <p className="text-red-500">{error.message}</p>
       </div>
     );
   }
-
-  console.log("Reservations Data:", reservations);
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -196,7 +200,7 @@ export default function ReservedProductsPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${totalSpent.toFixed(2)}</div>
+            <div className="text-2xl font-bold">LKR {totalSpent.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">On fulfilled orders</p>
           </CardContent>
         </Card>
@@ -240,11 +244,11 @@ export default function ReservedProductsPage() {
           {filteredReservations.length > 0 ? (
             filteredReservations.map((reservation) => {
               const statusInfo = getStatusStyles(reservation.status);
-              const totalPrice = reservation.quantityKg * reservation.productId.pricePerKg;
-              const product = reservation.productId;
+              const totalPrice = reservation.quantityKg * reservation.product.pricePerKg;
+              const product = reservation.product;
               
               return (
-                <Card key={reservation._id} className="p-4 flex flex-col sm:flex-row items-start gap-4">
+                <Card key={reservation.id} className="p-4 flex flex-col sm:flex-row items-start gap-4">
                   <Avatar className="w-24 h-24 rounded-md">
                     <AvatarImage src={product.images?.[0]} alt={product.title} />
                     <AvatarFallback>{product.title.charAt(0)}</AvatarFallback>
@@ -254,12 +258,10 @@ export default function ReservedProductsPage() {
                       <div>
                         <h3 className="font-semibold text-lg">{product.title}</h3>
                         <p className="text-sm text-muted-foreground">
-                          From: {product.address || (product.location ? 
-                            `Coordinates: ${product.location.coordinates[1]}, ${product.location.coordinates[0]}` : 
-                            'Location not specified')}
+                          From: {product.address || 'Location not specified'}
                         </p>
                         <p className="text-sm text-muted-foreground">
-                          Farmer: {product.farmerId?.name || 'Unknown'}
+                          Farmer: {product.farmer?.name || product.farmer?.username || 'Unknown'}
                         </p>
                       </div>
                       <Badge variant={statusInfo.variant} className="flex items-center gap-1.5">
@@ -275,15 +277,15 @@ export default function ReservedProductsPage() {
                       </div>
                       <div>
                         <p className="text-muted-foreground">Total Price</p>
-                        <p className="font-medium">${totalPrice.toFixed(2)}</p>
+                        <p className="font-medium">LKR {totalPrice.toFixed(2)}</p>
                       </div>
                       <div>
                         <p className="text-muted-foreground">Reserved On</p>
-                        <p className="font-medium">{reservation.reservedAt.toLocaleDateString()}</p>
+                        <p className="font-medium">{formatDate(reservation.reservedAt)}</p>
                       </div>
                     </div>
                   </div>
-                  {reservation.status === "reserved" && (
+                  {reservation.status === "reserved" && reservation.canCancel && (
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="outline" size="sm" className="w-full sm:w-auto">Cancel</Button>
@@ -293,20 +295,31 @@ export default function ReservedProductsPage() {
                           <AlertDialogTitle>Are you sure you want to cancel?</AlertDialogTitle>
                           <AlertDialogDescription>
                             This action cannot be undone. This will permanently cancel your reservation for
-                            <span className="font-semibold"> {reservation.quantityKg}{product.unit} of {product.title}</span>.
+                            <span className="font-semibold"> {reservation.quantityKg} {product.unit} of {product.title}</span>.
+                            <br />
+                            <span className="text-xs text-muted-foreground mt-2 block">
+                              Note: Reservations can only be cancelled within 30 minutes of booking.
+                            </span>
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Keep Reservation</AlertDialogCancel>
                           <AlertDialogAction
                             className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-                            onClick={() => handleCancelReservation(reservation._id)}
+                            onClick={() => handleCancelReservation(reservation.id)}
                           >
                             Yes, Cancel
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
                     </AlertDialog>
+                  )}
+                  {reservation.status === "reserved" && !reservation.canCancel && (
+                    <div className="text-center p-2">
+                      <p className="text-xs text-muted-foreground">
+                        Cancellation period expired
+                      </p>
+                    </div>
                   )}
                   {reservation.status === "fulfilled" && (
                     <Button variant="outline" size="sm" className="w-full sm:w-auto">

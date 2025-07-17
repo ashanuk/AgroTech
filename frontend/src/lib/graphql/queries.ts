@@ -587,4 +587,125 @@ export const DELETE_PRODUCT_MUTATION = gql`
   }
 `;
 
+// Reservation Queries & Mutations
+export const GET_MY_RESERVATIONS = gql`
+  query GetMyReservations {
+    myReservations {
+      id
+      buyerId
+      productId
+      quantityKg
+      status
+      reservedAt
+      fulfilledAt
+      updatedAt
+      canCancel
+      product {
+        id
+        title
+        description
+        cropType
+        pricePerKg
+        unit
+        images
+        address
+        farmer {
+          id
+          name
+          username
+          email
+          is_verified
+        }
+      }
+    }
+  }
+`;
+
+export const GET_RESERVATIONS = gql`
+  query GetReservations($buyerId: String, $status: String) {
+    reservations(buyerId: $buyerId, status: $status) {
+      id
+      buyerId
+      productId
+      quantityKg
+      status
+      reservedAt
+      fulfilledAt
+      updatedAt
+      canCancel
+      buyer {
+        id
+        name
+        username
+        email
+        is_verified
+      }
+      product {
+        id
+        title
+        description
+        cropType
+        pricePerKg
+        unit
+        images
+        address
+      }
+    }
+  }
+`;
+
+export const CREATE_RESERVATION_MUTATION = gql`
+  mutation CreateReservation($input: CreateReservationInput!) {
+    createReservation(input: $input) {
+      id
+      buyerId
+      productId
+      quantityKg
+      status
+      reservedAt
+      fulfilledAt
+      updatedAt
+      product {
+        id
+        title
+        description
+        cropType
+        pricePerKg
+        unit
+        images
+        address
+        availableQuantityKg
+        farmer {
+          id
+          name
+          username
+          email
+          is_verified
+        }
+      }
+    }
+  }
+`;
+
+export const CANCEL_RESERVATION_MUTATION = gql`
+  mutation CancelReservation($id: ID!) {
+    cancelReservation(id: $id) {
+      id
+      status
+      updatedAt
+    }
+  }
+`;
+
+export const FULFILL_RESERVATION_MUTATION = gql`
+  mutation FulfillReservation($id: ID!) {
+    fulfillReservation(id: $id) {
+      id
+      status
+      fulfilledAt
+      updatedAt
+    }
+  }
+`;
+
 
