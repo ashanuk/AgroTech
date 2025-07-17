@@ -2,6 +2,7 @@ const User = require("../models/User");
 const Category = require("../models/Category");
 const Thread = require("../models/Thread");
 const Post = require("../models/Post");
+const Product = require("../models/Product");
 const jwt = require("jsonwebtoken");
 const bcrypt = require("bcryptjs");
 
@@ -234,6 +235,193 @@ const resolvers = {
     me: async (_, __, { user }) => {
       if (!user) throw new Error("Not authenticated");
       return { ...user.toObject(), id: user._id };
+    },
+
+    // Products
+    products: async (_, { limit = 20, offset = 0, cropType, farmerId }) => {
+      const filter = {};
+      if (cropType) filter.cropType = cropType;
+      if (farmerId) filter.farmerId = farmerId;
+      
+      const products = await Product.find(filter)
+        .populate("farmerId")
+        .sort({ createdAt: -1 })
+        .limit(limit)
+        .skip(offset);
+
+      return products.map(product => {
+        // Check if farmerId exists and is populated
+        if (!product.farmerId) {
+          console.warn(`Product ${product._id} has no associated farmer`);
+          return null;
+        }
+
+        const productObj = product.toObject();
+        
+        return {
+          id: product._id,
+          farmerId: product.farmerId._id.toString(), // Return only the ID as string
+          title: productObj.title,
+          description: productObj.description,
+          cropType: productObj.cropType,
+          pricePerKg: productObj.pricePerKg,
+          totalQuantityKg: productObj.totalQuantityKg,
+          availableQuantityKg: productObj.availableQuantityKg,
+          unit: productObj.unit,
+          images: productObj.images || [],
+          location: productObj.location,
+          address: productObj.address,
+          createdAt: productObj.createdAt,
+          updatedAt: productObj.updatedAt,
+          farmer: {
+            id: product.farmerId._id,
+            username: product.farmerId.username,
+            email: product.farmerId.email,
+            avatar_url: product.farmerId.avatar_url,
+            is_verified: product.farmerId.is_verified
+          }
+        };
+      }).filter(Boolean); // Remove null entries
+    },
+
+    product: async (_, { id }) => {
+      const product = await Product.findById(id).populate("farmerId");
+      if (!product) throw new Error("Product not found");
+      
+      if (!product.farmerId) {
+        throw new Error("Product farmer not found");
+      }
+      
+      const productObj = product.toObject();
+      
+      return {
+        id: product._id,
+        farmerId: product.farmerId._id.toString(), // Return only the ID as string
+        title: productObj.title,
+        description: productObj.description,
+        cropType: productObj.cropType,
+        pricePerKg: productObj.pricePerKg,
+        totalQuantityKg: productObj.totalQuantityKg,
+        availableQuantityKg: productObj.availableQuantityKg,
+        unit: productObj.unit,
+        images: productObj.images || [],
+        location: productObj.location,
+        address: productObj.address,
+        createdAt: productObj.createdAt,
+        updatedAt: productObj.updatedAt,
+        farmer: {
+          id: product.farmerId._id,
+          username: product.farmerId.username,
+          email: product.farmerId.email,
+          avatar_url: product.farmerId.avatar_url,
+          is_verified: product.farmerId.is_verified
+        }
+      };
+    },
+
+    searchProducts: async (_, { query, limit = 20, offset = 0 }) => {
+      try {
+        const products = await Product.find({
+          $text: { $search: query }
+        })
+        .populate("farmerId")
+        .sort({ score: { $meta: "textScore" } })
+        .limit(limit)
+        .skip(offset);
+
+        return products.map(product => {
+          // Check if farmerId exists and is populated
+          if (!product.farmerId) {
+            console.warn(`Product ${product._id} has no associated farmer`);
+            return null;
+          }
+
+          try {
+            // Extract the product object and handle the farmerId properly
+            const productObj = product.toObject();
+            
+            return {
+              id: product._id,
+              farmerId: product.farmerId._id.toString(), // Return only the ID as string
+              title: productObj.title,
+              description: productObj.description,
+              cropType: productObj.cropType,
+              pricePerKg: productObj.pricePerKg,
+              totalQuantityKg: productObj.totalQuantityKg,
+              availableQuantityKg: productObj.availableQuantityKg,
+              unit: productObj.unit,
+              images: productObj.images || [],
+              location: productObj.location,
+              address: productObj.address,
+              createdAt: productObj.createdAt,
+              updatedAt: productObj.updatedAt,
+              farmer: {
+                id: product.farmerId._id,
+                username: product.farmerId.username,
+                email: product.farmerId.email,
+                avatar_url: product.farmerId.avatar_url,
+                is_verified: product.farmerId.is_verified
+              }
+            };
+          } catch (err) {
+            console.error(`Error processing product ${product._id}:`, err);
+            return null;
+          }
+        }).filter(Boolean); // Remove null entries
+      } catch (error) {
+        console.error('Error in searchProducts:', error);
+        return []; // Return empty array instead of throwing
+      }
+    },
+
+    nearbyProducts: async (_, { longitude, latitude, maxDistance = 10000, limit = 20 }) => {
+      const products = await Product.find({
+        location: {
+          $near: {
+            $geometry: {
+              type: "Point",
+              coordinates: [longitude, latitude]
+            },
+            $maxDistance: maxDistance // in meters
+          }
+        }
+      })
+      .populate("farmerId")
+      .limit(limit);
+
+      return products.map(product => {
+        // Check if farmerId exists and is populated
+        if (!product.farmerId) {
+          console.warn(`Product ${product._id} has no associated farmer`);
+          return null;
+        }
+
+        const productObj = product.toObject();
+        
+        return {
+          id: product._id,
+          farmerId: product.farmerId._id.toString(), // Return only the ID as string
+          title: productObj.title,
+          description: productObj.description,
+          cropType: productObj.cropType,
+          pricePerKg: productObj.pricePerKg,
+          totalQuantityKg: productObj.totalQuantityKg,
+          availableQuantityKg: productObj.availableQuantityKg,
+          unit: productObj.unit,
+          images: productObj.images || [],
+          location: productObj.location,
+          address: productObj.address,
+          createdAt: productObj.createdAt,
+          updatedAt: productObj.updatedAt,
+          farmer: {
+            id: product.farmerId._id,
+            username: product.farmerId.username,
+            email: product.farmerId.email,
+            avatar_url: product.farmerId.avatar_url,
+            is_verified: product.farmerId.is_verified
+          }
+        };
+      }).filter(Boolean); // Remove null entries
     },
   },
 
@@ -685,6 +873,79 @@ const resolvers = {
         })),
         reply_count: replies.length,
       };
+    },
+
+    // Products
+    createProduct: async (_, { input }, { user }) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const product = new Product({
+        ...input,
+        farmerId: input.farmerId || user._id
+      });
+
+      const savedProduct = await product.save();
+      const populatedProduct = await Product.findById(savedProduct._id)
+        .populate("farmerId");
+
+      if (!populatedProduct.farmerId) {
+        throw new Error("Failed to populate farmer data");
+      }
+
+      return {
+        ...populatedProduct.toObject(),
+        id: populatedProduct._id,
+        farmer: {
+          ...populatedProduct.farmerId.toObject(),
+          id: populatedProduct.farmerId._id
+        }
+      };
+    },
+
+    updateProduct: async (_, { id, input }, { user }) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const product = await Product.findById(id);
+      if (!product) throw new Error("Product not found");
+
+      // Check if user owns the product or is admin
+      if (product.farmerId.toString() !== user._id.toString()) {
+        throw new Error("Not authorized to update this product");
+      }
+
+      const updatedProduct = await Product.findByIdAndUpdate(
+        id,
+        { ...input, updatedAt: new Date() },
+        { new: true }
+      ).populate("farmerId");
+
+      if (!updatedProduct.farmerId) {
+        throw new Error("Failed to populate farmer data");
+      }
+
+      return {
+        ...updatedProduct.toObject(),
+        id: updatedProduct._id,
+        farmer: {
+          ...updatedProduct.farmerId.toObject(),
+          id: updatedProduct.farmerId._id
+        }
+      };
+    },
+
+    deleteProduct: async (_, { id }, { user }) => {
+      if (!user) throw new Error("Not authenticated");
+
+      const product = await Product.findById(id);
+      if (!product) throw new Error("Product not found");
+
+      // Check if user owns the product or is admin
+      if (product.farmerId.toString() !== user._id.toString()) {
+        throw new Error("Not authorized to delete this product");
+      }
+
+      await Product.findByIdAndDelete(id);
+      return true;
     },
   },
 };

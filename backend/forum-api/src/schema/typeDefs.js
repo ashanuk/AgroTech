@@ -52,6 +52,31 @@ const typeDefs = gql`
     reply_count: Int!
   }
 
+  type Location {
+    type: String!
+    coordinates: [Float!]!
+  }
+
+  type Product {
+    id: ID!
+    farmerId: String!
+    farmer: User!
+    title: String!
+    description: String!
+    cropType: String!
+    pricePerKg: Float!
+    totalQuantityKg: Float!
+    availableQuantityKg: Float!
+    unit: String!
+    images: [String!]!
+    location: Location
+    address: String
+    createdAt: String!
+    updatedAt: String!
+    replies: [Post!]!
+    reply_count: Int!
+  }
+
   input CreateCategoryInput {
     name: String!
     description: String!
@@ -72,6 +97,38 @@ const typeDefs = gql`
   input UpdatePostInput {
     content: String!
     image_urls: [String!]
+  }
+
+  input LocationInput {
+    type: String!
+    coordinates: [Float!]!
+  }
+
+  input CreateProductInput {
+    farmerId: String!
+    title: String!
+    description: String!
+    cropType: String!
+    pricePerKg: Float!
+    totalQuantityKg: Float!
+    availableQuantityKg: Float!
+    unit: String!
+    images: [String!]
+    location: LocationInput
+    address: String
+  }
+
+  input UpdateProductInput {
+    title: String
+    description: String
+    cropType: String
+    pricePerKg: Float
+    totalQuantityKg: Float
+    availableQuantityKg: Float
+    unit: String
+    images: [String!]
+    location: LocationInput
+    address: String
   }
 
   input RegisterInput {
@@ -108,6 +165,12 @@ const typeDefs = gql`
     users: [User!]!
     user(id: ID!): User
     me: User
+
+    # Products
+    products(limit: Int, offset: Int, cropType: String, farmerId: String): [Product!]!
+    product(id: ID!): Product
+    searchProducts(query: String!, limit: Int, offset: Int): [Product!]!
+    nearbyProducts(longitude: Float!, latitude: Float!, maxDistance: Float, limit: Int): [Product!]!
   }
 
   type Mutation {
@@ -133,6 +196,11 @@ const typeDefs = gql`
     deletePost(id: ID!): Boolean!
     likePost(id: ID!): Post!
     unlikePost(id: ID!): Post!
+
+    # Products
+    createProduct(input: CreateProductInput!): Product!
+    updateProduct(id: ID!, input: UpdateProductInput!): Product!
+    deleteProduct(id: ID!): Boolean!
   }
 `;
 

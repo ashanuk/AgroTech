@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from 'react'
+import { useQuery } from '@apollo/client'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -26,8 +27,36 @@ import {
   Eye,
   Phone
 } from 'lucide-react'
+import { GET_PRODUCTS, SEARCH_PRODUCTS, GET_NEARBY_PRODUCTS } from '@/lib/graphql/queries'
+import { useIsClient, useGeolocation, useSafeDate } from '@/hooks/useClientSafe'
 
-// Types for market data
+// Types for market data - Update to match GraphQL Product type
+interface Product {
+  id: string
+  title: string
+  description: string
+  cropType: string
+  pricePerKg: number
+  totalQuantityKg: number
+  availableQuantityKg: number
+  unit: string
+  images: string[]
+  location?: {
+    type: string
+    coordinates: [number, number]
+  }
+  address?: string
+  createdAt: string
+  updatedAt: string
+  farmer: {
+    id: string
+    username: string
+    email: string
+    avatar_url?: string
+    is_verified: boolean
+  }
+}
+
 interface MarketPrice {
   id: string
   product: string
@@ -304,17 +333,170 @@ export default function MarketPage() {
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc')
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [isSearching, setIsSearching] = useState(false)
-  const [searchResults, setSearchResults] = useState<MarketPrice[]>([])
   const [marketPrices, setMarketPrices] = useState<MarketPrice[]>([])
+  const [userLocation, setUserLocation] = useState<{ lat: number, lng: number } | null>(null)
+  const [isClient, setIsClient] = useState(false)
+
+  // GraphQL Queries
+  const { 
+    loading: productsLoading, 
+    error: productsError, 
+    data: productsData 
+  } = useQuery(GET_PRODUCTS, {
+    variables: { limit: 50, offset: 0 }
+  })
+
+  const { 
+    loading: searchLoading, 
+    error: searchError, 
+    data: searchData,
+    refetch: refetchSearch 
+  } = useQuery(SEARCH_PRODUCTS, {
+    variables: { query: searchQuery, limit: 20, offset: 0 },
+    skip: !searchQuery || searchQuery.length < 2
+  })
+
+  // Hydration fix: Set client-side flag
+  useEffect(() => {
+    setIsClient(true)
+  }, [])
+
+  // Get user location for nearby products - only run on client
+  useEffect(() => {
+    if (!isClient) return
+
+    if (typeof window !== 'undefined' && navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          setUserLocation({
+            lat: position.coords.latitude,
+            lng: position.coords.longitude
+          })
+        },
+        (error) => {
+          console.log('Location access denied:', error)
+          // Set default location (Colombo, Sri Lanka)
+          setUserLocation({ lat: 6.9271, lng: 79.8612 })
+        }
+      )
+    } else {
+      // Fallback to Colombo
+      setUserLocation({ lat: 6.9271, lng: 79.8612 })
+    }
+  }, [isClient])
+
+  // Convert products to market price format for display
+  const convertProductsToMarketPrices = (products: Product[]): MarketPrice[] => {
+    return products.map(product => {
+      // Safe date formatting to prevent hydration issues
+      let formattedDate = ''
+      let timeAgo = ''
+      
+      if (isClient) {
+        try {
+          formattedDate = new Date(product.createdAt).toISOString().split('T')[0]
+          timeAgo = getTimeAgo(product.updatedAt)
+        } catch (error) {
+          formattedDate = ''
+          timeAgo = ''
+        }
+      }
+
+      return {
+        id: product.id,
+        product: product.title,
+        category: product.cropType,
+        price: product.pricePerKg,
+        unit: product.unit,
+        currency: 'LKR',
+        location: product.address || 'Sri Lanka',
+        district: extractDistrict(product.address || ''),
+        market: `${product.farmer?.username || 'Farm'}'s Farm`,
+        date: formattedDate,
+        trend: 'stable' as const,
+        quality: determineQuality(product.pricePerKg),
+        availability: determineAvailability(product.availableQuantityKg, product.totalQuantityKg),
+        distance: product.location && userLocation ? 
+          calculateDistance(
+            userLocation.lat, 
+            userLocation.lng, 
+            product.location.coordinates[1], 
+            product.location.coordinates[0]
+          ) : undefined,
+        lastUpdated: timeAgo
+      }
+    })
+  }
+
+  // Helper functions
+  const extractDistrict = (address: string): string => {
+    const districts = ['Colombo', 'Gampaha', 'Kandy', 'Matale', 'Galle', 'Jaffna', 'Kurunegala', 'Anuradhapura']
+    const found = districts.find(district => address.includes(district))
+    return found || 'Other'
+  }
+
+  const determineQuality = (price: number): 'premium' | 'standard' | 'economy' => {
+    if (price > 200) return 'premium'
+    if (price > 100) return 'standard'
+    return 'economy'
+  }
+
+  const determineAvailability = (available: number, total: number): 'high' | 'medium' | 'low' => {
+    const ratio = available / total
+    if (ratio > 0.7) return 'high'
+    if (ratio > 0.3) return 'medium'
+    return 'low'
+  }
+
+  const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
+    const R = 6371 // Radius of the Earth in kilometers
+    const dLat = (lat2 - lat1) * Math.PI / 180
+    const dLon = (lon2 - lon1) * Math.PI / 180
+    const a = 
+      Math.sin(dLat/2) * Math.sin(dLat/2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.sin(dLon/2) * Math.sin(dLon/2)
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a))
+    return Math.round(R * c)
+  }
+
+  const getTimeAgo = (dateString: string): string => {
+    // Prevent hydration issues by avoiding time calculations during SSR
+    if (!isClient) return ''
+    
+    try {
+      const now = new Date()
+      const date = new Date(dateString)
+      const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60))
+      
+      if (diffInHours < 1) return 'Less than an hour ago'
+      if (diffInHours < 24) return `${diffInHours} hour${diffInHours > 1 ? 's' : ''} ago`
+      const diffInDays = Math.floor(diffInHours / 24)
+      return `${diffInDays} day${diffInDays > 1 ? 's' : ''} ago`
+    } catch (error) {
+      return ''
+    }
+  }
+
+  // Get products data
+  const allProducts = productsData?.products || []
+  const searchResults = searchData?.searchProducts || []
+  
+  // Convert to market price format
+  const allMarketPrices = convertProductsToMarketPrices(allProducts)
+  const searchMarketPrices = convertProductsToMarketPrices(searchResults)
 
   // Get unique categories for filter
-  const categories = ['all', ...Array.from(new Set(mockPrices.map(p => p.category)))]
+  const categories = ['all', ...Array.from(new Set(allMarketPrices.map(p => p.category)))]
 
   // Handle market card click
   const handleMarketClick = (market: Market) => {
     setSelectedMarket(market)
-    // Get prices for selected market
-    const prices = mockPrices.filter(p => p.market === market.name)
+    // Get products for selected market - filter by location or market type
+    const prices = allMarketPrices.filter(p => 
+      p.district === market.district || 
+      p.location.includes(market.location)
+    )
     setMarketPrices(prices)
     setIsSheetOpen(true)
   }
@@ -325,22 +507,18 @@ export default function MarketPage() {
     setIsSearching(query.length > 0)
     
     if (query.trim() === "") {
-      setSearchResults([])
       return
     }
 
-    // Search for products across all markets
-    const results = mockPrices.filter(price => 
-      price.product.toLowerCase().includes(query.toLowerCase()) ||
-      price.category.toLowerCase().includes(query.toLowerCase())
-    )
-    
-    setSearchResults(results)
+    // Refetch search results when query changes
+    if (query.length >= 2) {
+      refetchSearch({ query, limit: 20, offset: 0 })
+    }
   }
 
   // Get filtered and sorted search results
   const getFilteredResults = () => {
-    let results = [...searchResults]
+    let results = [...searchMarketPrices]
     
     // Apply category filter
     if (filterCategory !== 'all') {
@@ -414,53 +592,75 @@ export default function MarketPage() {
       {/* Markets Grid - Always show */}
       <div>
         <h2 className="text-2xl font-semibold">Major Markets</h2>
+        
+        {productsLoading && (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin" />
+            <span className="ml-2">Loading markets...</span>
+          </div>
+        )}
+        
+        {productsError && (
+          <div className="text-red-500 py-4">
+            Error loading markets: {productsError.message}
+          </div>
+        )}
+        
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
-          {sriLankanMarkets.map((market) => (
-            <Card 
-              key={market.id} 
-              className="cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() => handleMarketClick(market)}
-            >
-              <CardHeader className="pb-2">
-                <div className="flex items-center gap-3">
-                  <span className="text-4xl">{market.image}</span>
-                  <div>
-                    <CardTitle className="text-lg">{market.name}</CardTitle>
-                    <div className="flex items-center gap-2 mt-1">
-                      <Badge variant="outline" className="text-xs">
-                        {market.type}
-                      </Badge>
-                      <div className="flex items-center gap-1">
-                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
-                        <span className="text-xs">{market.rating}</span>
+          {sriLankanMarkets.map((market) => {
+            // Count products in this market area
+            const marketProductCount = allMarketPrices.filter(p => 
+              p.district === market.district || 
+              p.location.includes(market.location)
+            ).length
+            
+            return (
+              <Card 
+                key={market.id} 
+                className="cursor-pointer hover:shadow-lg transition-shadow"
+                onClick={() => handleMarketClick(market)}
+              >
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-3">
+                    <span className="text-4xl">{market.image}</span>
+                    <div>
+                      <CardTitle className="text-lg">{market.name}</CardTitle>
+                      <div className="flex items-center gap-2 mt-1">
+                        <Badge variant="outline" className="text-xs">
+                          {market.type}
+                        </Badge>
+                        <div className="flex items-center gap-1">
+                          <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                          <span className="text-xs">{market.rating}</span>
+                        </div>
                       </div>
                     </div>
                   </div>
-                </div>
-              </CardHeader>
-              
-              <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground line-clamp-2">
-                  {market.description}
-                </p>
+                </CardHeader>
                 
-                <div className="space-y-2 text-sm">
-                  <div className="flex items-center gap-2">
-                    <MapPin className="h-4 w-4 text-muted-foreground" />
-                    <span>{market.location}</span>
+                <CardContent className="space-y-3">
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {market.description}
+                  </p>
+                  
+                  <div className="space-y-2 text-sm">
+                    <div className="flex items-center gap-2">
+                      <MapPin className="h-4 w-4 text-muted-foreground" />
+                      <span>{market.location}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Clock className="h-4 w-4 text-muted-foreground" />
+                      <span>{market.openHours}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <ShoppingCart className="h-4 w-4 text-muted-foreground" />
+                      <span>{marketProductCount > 0 ? `${marketProductCount} live products` : `${market.productsCount}+ products`}</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Clock className="h-4 w-4 text-muted-foreground" />
-                    <span>{market.openHours}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <ShoppingCart className="h-4 w-4 text-muted-foreground" />
-                    <span>{market.productsCount}+ products</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            )
+          })}
         </div>
       </div>
 
@@ -528,100 +728,117 @@ export default function MarketPage() {
       {/* Search Results */}
       {isSearching && (
         <div>
-          <h2 className="text-2xl font-semibold mb-4">
-            Search Results for "{searchQuery}"
-            <span className="text-lg font-normal text-muted-foreground ml-2">
-              ({getFilteredResults().length} found)
-            </span>
-          </h2>
+          {searchLoading && (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin" />
+              <span className="ml-2">Searching products...</span>
+            </div>
+          )}
           
-          {/* Group results by product */}
-          {Object.entries(
-            getFilteredResults().reduce((groups, price) => {
-              if (!groups[price.product]) {
-                groups[price.product] = []
-              }
-              groups[price.product].push(price)
-              return groups
-            }, {} as Record<string, MarketPrice[]>)
-          ).map(([product, prices]) => (
-            <div key={product} className="mb-8">
-              <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5" />
-                {product}
-                <span className="text-sm font-normal text-muted-foreground">
-                  ({prices.length} market{prices.length > 1 ? 's' : ''})
+          {searchError && (
+            <div className="text-red-500 py-4">
+              Error searching products: {searchError.message}
+            </div>
+          )}
+          
+          {!searchLoading && !searchError && (
+            <>
+              <h2 className="text-2xl font-semibold mb-4">
+                Search Results for "{searchQuery}"
+                <span className="text-lg font-normal text-muted-foreground ml-2">
+                  ({getFilteredResults().length} found)
                 </span>
-              </h3>
+              </h2>
               
-              {/* Grid Header */}
-              <div className="bg-muted/50 rounded-t-lg p-4 border">
-                <div className="grid grid-cols-6 gap-4 text-sm font-medium text-muted-foreground">
-                  <div>Market</div>
-                  <div>Price</div>
-                  <div>Quality</div>
-                  <div>Location</div>
-                  <div>Distance</div>
-                  <div>Status</div>
-                </div>
-              </div>
-              
-              {/* Grid Rows */}
-              <div className="border border-t-0 rounded-b-lg">
-                {prices.map((price, index) => (
-                  <div 
-                    key={price.id} 
-                    className={`grid grid-cols-6 gap-4 p-4 hover:bg-muted/30 transition-colors ${
-                      index !== prices.length - 1 ? 'border-b' : ''
-                    }`}
-                  >
-                    {/* Market */}
-                    <div className="flex items-center gap-2">
-                      <span className="font-medium">{price.market}</span>
-                      {getTrendIcon(price.trend)}
-                    </div>
-                    
-                    {/* Price */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-lg font-bold text-primary">
-                        {price.currency} {price.price}
-                      </span>
-                      <span className="text-xs text-muted-foreground">per {price.unit}</span>
-                    </div>
-                    
-                    {/* Quality */}
-                    <div>
-                      <Badge variant={getQualityBadge(price.quality)} className="text-xs">
-                        {price.quality}
-                      </Badge>
-                    </div>
-                    
-                    {/* Location */}
-                    <div className="flex items-center gap-1 text-sm">
-                      <MapPin className="h-3 w-3 text-muted-foreground" />
-                      <span className="truncate">{price.location}</span>
-                    </div>
-                    
-                    {/* Distance */}
-                    <div className="flex items-center gap-1 text-sm">
-                      <Navigation className="h-3 w-3 text-muted-foreground" />
-                      <span>{price.distance} km</span>
-                    </div>
-                    
-                    {/* Status */}
-                    <div className="space-y-1">
-                      <div className={`text-xs ${getAvailabilityColor(price.availability)}`}>
-                        {price.availability} availability
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {price.lastUpdated}
-                      </div>
+              {/* Group results by product */}
+              {Object.entries(
+                getFilteredResults().reduce((groups: Record<string, MarketPrice[]>, price) => {
+                  if (!groups[price.product]) {
+                    groups[price.product] = []
+                  }
+                  groups[price.product].push(price)
+                  return groups
+                }, {})
+              ).map(([product, prices]: [string, MarketPrice[]]) => (
+                <div key={product} className="mb-8">
+                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <ShoppingCart className="h-5 w-5" />
+                    {product}
+                    <span className="text-sm font-normal text-muted-foreground">
+                      ({prices.length} farm{prices.length > 1 ? 's' : ''})
+                    </span>
+                  </h3>
+                  
+                  {/* Grid Header */}
+                  <div className="bg-muted/50 rounded-t-lg p-4 border">
+                    <div className="grid grid-cols-6 gap-4 text-sm font-medium text-muted-foreground">
+                      <div>Farmer/Market</div>
+                      <div>Price</div>
+                      <div>Quality</div>
+                      <div>Location</div>
+                      <div>Distance</div>
+                      <div>Status</div>
                     </div>
                   </div>
-                ))}
-              </div>
-            </div>
-          ))}
+                  
+                  {/* Grid Rows */}
+                  <div className="border border-t-0 rounded-b-lg">
+                    {prices.map((price, index) => (
+                      <div 
+                        key={price.id} 
+                        className={`grid grid-cols-6 gap-4 p-4 hover:bg-muted/30 transition-colors ${
+                          index !== prices.length - 1 ? 'border-b' : ''
+                        }`}
+                      >
+                        {/* Market */}
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{price.market}</span>
+                          {getTrendIcon(price.trend)}
+                        </div>
+                        
+                        {/* Price */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-lg font-bold text-primary">
+                            {price.currency} {price.price}
+                          </span>
+                          <span className="text-xs text-muted-foreground">per {price.unit}</span>
+                        </div>
+                        
+                        {/* Quality */}
+                        <div>
+                          <Badge variant={getQualityBadge(price.quality)} className="text-xs">
+                            {price.quality}
+                          </Badge>
+                        </div>
+                        
+                        {/* Location */}
+                        <div className="flex items-center gap-1 text-sm">
+                          <MapPin className="h-3 w-3 text-muted-foreground" />
+                          <span className="truncate">{price.location}</span>
+                        </div>
+                        
+                        {/* Distance */}
+                        <div className="flex items-center gap-1 text-sm">
+                          <Navigation className="h-3 w-3 text-muted-foreground" />
+                          <span>{price.distance ? `${price.distance} km` : 'N/A'}</span>
+                        </div>
+                        
+                        {/* Status */}
+                        <div className="space-y-1">
+                          <div className={`text-xs ${getAvailabilityColor(price.availability)}`}>
+                            {price.availability} availability
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {price.lastUpdated}
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </>
+          )}
         </div>
       )}
 
@@ -739,33 +956,46 @@ export default function MarketPage() {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Price Trends</CardTitle>
+            <CardTitle className="text-lg">Live Market Data</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-4 w-4 text-red-500" />
-              <span className="text-sm">Vegetables trending up this week</span>
+              <ShoppingCart className="h-4 w-4 text-blue-500" />
+              <span className="text-sm">{allMarketPrices.length} products available</span>
             </div>
             <div className="flex items-center gap-2">
-              <TrendingDown className="h-4 w-4 text-green-500" />
-              <span className="text-sm">Rice prices stable</span>
+              <Building2 className="h-4 w-4 text-green-500" />
+              <span className="text-sm">{new Set(allMarketPrices.map(p => p.market)).size} active farmers</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-4 w-4 rounded-full bg-blue-500"></div>
-              <span className="text-sm">Fish prices seasonal variation</span>
+              <MapPin className="h-4 w-4 text-orange-500" />
+              <span className="text-sm">{new Set(allMarketPrices.map(p => p.district)).size} districts covered</span>
             </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg">Market Insights</CardTitle>
+            <CardTitle className="text-lg">Price Insights</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Dambulla offers best wholesale prices for vegetables. 
-              Colombo markets have premium quality with higher prices.
-            </p>
+            <div className="space-y-2">
+              {allMarketPrices.length > 0 && (
+                <>
+                  <div className="text-sm">
+                    <span className="font-medium">Avg Price: </span>
+                    LKR {Math.round(allMarketPrices.reduce((sum, p) => sum + p.price, 0) / allMarketPrices.length)}
+                  </div>
+                  <div className="text-sm">
+                    <span className="font-medium">Price Range: </span>
+                    LKR {Math.min(...allMarketPrices.map(p => p.price))} - {Math.max(...allMarketPrices.map(p => p.price))}
+                  </div>
+                </>
+              )}
+              <p className="text-xs text-muted-foreground">
+                Real-time data from {new Set(allMarketPrices.map(p => p.market)).size} verified farmers
+              </p>
+            </div>
           </CardContent>
         </Card>
 
@@ -774,13 +1004,41 @@ export default function MarketPage() {
             <CardTitle className="text-lg">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <Button variant="outline" size="sm" className="w-full justify-start">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full justify-start"
+              onClick={() => {
+                // Find lowest price product
+                if (allMarketPrices.length > 0) {
+                  const cheapest = allMarketPrices.reduce((min, p) => p.price < min.price ? p : min)
+                  setSearchQuery(cheapest.product)
+                  setIsSearching(true)
+                }
+              }}
+            >
               <Eye className="h-4 w-4 mr-2" />
-              Compare Prices
+              Find Best Deals
             </Button>
-            <Button variant="outline" size="sm" className="w-full justify-start">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full justify-start"
+              onClick={() => {
+                if (userLocation) {
+                  // Sort by distance and search for nearest
+                  const nearest = allMarketPrices
+                    .filter(p => p.distance)
+                    .sort((a, b) => (a.distance || 0) - (b.distance || 0))[0]
+                  if (nearest) {
+                    setSearchQuery(nearest.product)
+                    setIsSearching(true)
+                  }
+                }
+              }}
+            >
               <Navigation className="h-4 w-4 mr-2" />
-              Find Nearest Market
+              Find Nearest Products
             </Button>
           </CardContent>
         </Card>
