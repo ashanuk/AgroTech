@@ -37,65 +37,70 @@ const dummyData = {
   ]
 }
 
-// Combine and format data for the chart
-const formatChartData = (historical: any[], future: any[]) => {
-  const historicalData = historical.map(item => ({
-    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    historical: item.price,
-    future: null,
-    type: 'historical'
-  }))
 
-  const futureData = future.map(item => ({
-    date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-    historical: null,
-    future: item.price,
-    type: 'future'
-  }))
-
-  return [...historicalData, ...futureData]
-}
-
-const chartData = formatChartData(dummyData.historical, dummyData.future)
-
-// Calculate statistics
-const getStats = () => {
-  const lastHistorical = dummyData.historical[dummyData.historical.length - 1]
-  const lastFuture = dummyData.future[dummyData.future.length - 1]
-  const avgHistorical = dummyData.historical.reduce((sum, item) => sum + item.price, 0) / dummyData.historical.length
-  const avgFuture = dummyData.future.reduce((sum, item) => sum + item.price, 0) / dummyData.future.length
-  
-  return {
-    currentPrice: lastHistorical.price,
-    predictedPrice: lastFuture.price,
-    avgHistorical: avgHistorical,
-    avgFuture: avgFuture,
-    trend: avgFuture > avgHistorical ? 'up' : 'down',
-    changePercent: ((avgFuture - avgHistorical) / avgHistorical * 100).toFixed(1)
-  }
-}
-
-const stats = getStats()
-
-// Custom tooltip component
-const CustomTooltip = ({ active, payload, label }: any) => {
-  if (active && payload && payload.length) {
-    const data = payload[0]
-    return (
-      <div className="bg-popover p-3 border border-border rounded-lg shadow-lg">
-        <p className="font-medium text-popover-foreground">{label}</p>
-        <p className="text-sm">
-          <span className={`font-medium ${data.dataKey === 'historical' ? 'text-blue-600' : 'text-green-600'}`}>
-            {data.dataKey === 'historical' ? 'Historical' : 'Predicted'}: ${data.value?.toFixed(2)}
-          </span>
-        </p>
-      </div>
-    )
-  }
-  return null
-}
 
 export default function PricePredictionPage() {
+
+  // Combine and format data for the chart
+  const formatChartData = (historical: any[], future: any[]) => {
+    const historicalData = historical.map(item => ({
+      date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      historical: item.price,
+      future: null,
+      type: 'historical'
+    }))
+
+    const futureData = future.map(item => ({
+      date: new Date(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      historical: null,
+      future: item.price,
+      type: 'future'
+    }))
+
+    return [...historicalData, ...futureData]
+  }
+
+  const chartData = formatChartData(dummyData.historical, dummyData.future)
+
+  // Calculate statistics
+  const getStats = () => {
+    const lastHistorical = dummyData.historical[dummyData.historical.length - 1]
+    const lastFuture = dummyData.future[dummyData.future.length - 1]
+    const avgHistorical = dummyData.historical.reduce((sum, item) => sum + item.price, 0) / dummyData.historical.length
+    const avgFuture = dummyData.future.reduce((sum, item) => sum + item.price, 0) / dummyData.future.length
+
+    return {
+      currentPrice: lastHistorical.price,
+      predictedPrice: lastFuture.price,
+      avgHistorical: avgHistorical,
+      avgFuture: avgFuture,
+      trend: avgFuture > avgHistorical ? 'up' : 'down',
+      changePercent: ((avgFuture - avgHistorical) / avgHistorical * 100).toFixed(1)
+    }
+  }
+
+  const stats = getStats()
+
+  // Custom tooltip component
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (active && payload && payload.length) {
+      const data = payload[0]
+      return (
+        <div className="bg-popover p-3 border border-border rounded-lg shadow-lg">
+          <p className="font-medium text-popover-foreground">{label}</p>
+          <p className="text-sm">
+            <span className={`font-medium ${data.dataKey === 'historical' ? 'text-blue-600' : 'text-green-600'}`}>
+              {data.dataKey === 'historical' ? 'Historical' : 'Predicted'}: ${data.value?.toFixed(2)}
+            </span>
+          </p>
+        </div>
+      )
+    }
+    return null
+  }
+
+
+
   return (
     <div className="container mx-auto p-6 space-y-6">
       {/* Header */}
@@ -176,31 +181,31 @@ export default function PricePredictionPage() {
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                <XAxis 
-                  dataKey="date" 
+                <XAxis
+                  dataKey="date"
                   tick={{ fontSize: 12, fill: '#64748b' }}
                   tickLine={{ stroke: '#e2e8f0' }}
                 />
-                <YAxis 
+                <YAxis
                   tick={{ fontSize: 12, fill: '#64748b' }}
                   tickLine={{ stroke: '#e2e8f0' }}
                   label={{ value: 'Price ($)', angle: -90, position: 'insideLeft', style: { fill: '#64748b' } }}
                 />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="historical" 
-                  stroke="#3b82f6" 
+                <Line
+                  type="monotone"
+                  dataKey="historical"
+                  stroke="#3b82f6"
                   strokeWidth={2}
                   dot={{ fill: '#3b82f6', strokeWidth: 2, r: 4 }}
                   connectNulls={false}
                   name="Historical Prices"
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="future" 
-                  stroke="#10b981" 
+                <Line
+                  type="monotone"
+                  dataKey="future"
+                  stroke="#10b981"
                   strokeWidth={2}
                   strokeDasharray="5 5"
                   dot={{ fill: '#10b981', strokeWidth: 2, r: 4 }}
