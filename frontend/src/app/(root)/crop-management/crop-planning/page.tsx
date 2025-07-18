@@ -75,28 +75,41 @@ export default function CropPlanningPage() {
       setIsLoading(true)
       setError(null) // Clear any previous errors
       
-      
+      console.log('🔄 Starting to fetch crops...')
       const response = await fetch('/api/crop') // Change from '/api/crop' to '/api/crops'
       
-      
+      console.log('📡 Response status:', response.status)
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       
       const data = await response.json()
-      
+      console.log('📊 Raw API Response:', data)
       
       // Check for 'status' instead of 'success'
       if (data.status === 'success' && Array.isArray(data.data)) {
+        console.log('✅ Setting crops:', data.data.length, 'items')
         
-        setCrops(data.data)
-        setAllCrops(data.data) // Store all crops for search
-       
+        // Helper function to get random crops (client-side only)
+        const getRandomCrops = (cropsArray: ICrop[], count: number = 10): ICrop[] => {
+          // Use a deterministic selection for SSR, random for client
+          if (typeof window === 'undefined') {
+            return cropsArray.slice(0, count)
+          }
+          const shuffled = [...cropsArray].sort(() => 0.5 - Math.random())
+          return shuffled.slice(0, count)
+        }
+        
+        const randomCrops = getRandomCrops(data.data, 10)
+        console.log('🎲 Selected random crops:', randomCrops.length, 'items')
+        
+        setCrops(randomCrops) // Set random 10 crops for display
+        setAllCrops(data.data) // Store all crops for search functionality
         
         // Log first crop for structure inspection
-        if (data.data.length > 0) {
-          
+        if (randomCrops.length > 0) {
+          console.log('📋 Sample crop structure:', randomCrops[0])
         }
       } else {
         console.error('❌ API Response structure issue:', {
@@ -351,8 +364,95 @@ export default function CropPlanningPage() {
     if (searchPerformed) {
       return 'Recommended Crops'
     }
-    return 'All Available Crops'
+    return 'Available Crops'
   }
+
+  // Add these functions after your existing helper functions
+  const getFertilizerDisplay = (fertilizerSchedule: any): React.ReactNode => {
+    if (!fertilizerSchedule || typeof fertilizerSchedule !== 'object') {
+      return <span className="text-muted-foreground">No fertilizer schedule available</span>;
+    }
+
+    // Check if it has regional variations (like upcountry)
+    const hasRegionalVariations = Object.keys(fertilizerSchedule).some(key => 
+      typeof fertilizerSchedule[key] === 'object' && 
+      fertilizerSchedule[key].basal !== undefined
+    );
+
+    if (hasRegionalVariations) {
+      // Handle structure with regional variations (upcountry, lowcountry, etc.)
+      return (
+        <div className="space-y-4">
+          {Object.entries(fertilizerSchedule).map(([region, schedule]: [string, any]) => (
+            <div key={region} className="border rounded-lg p-3">
+              <h5 className="font-medium text-sm mb-3 capitalize text-primary">
+                {region.replace(/([A-Z])/g, ' $1').trim()} Region
+              </h5>
+              {renderFertilizerTimeline(schedule)}
+            </div>
+          ))}
+        </div>
+      );
+    } else {
+      // Handle simple structure without regional variations
+      return renderFertilizerTimeline(fertilizerSchedule);
+    }
+  };
+
+  const renderFertilizerTimeline = (schedule: any): React.ReactNode => {
+    if (!schedule || typeof schedule !== 'object') {
+      return <span className="text-muted-foreground">No schedule data</span>;
+    }
+
+    const timelineStages = Object.entries(schedule).map(([stage, fertilizers]: [string, any]) => {
+      if (typeof fertilizers !== 'object') return null;
+
+      return (
+        <div key={stage} className="mb-3">
+          <div className="font-medium text-xs text-muted-foreground mb-2 capitalize">
+            {stage.replace(/([A-Z])/g, ' $1').replace(/(\d+)/g, ' $1').trim()}
+          </div>
+          <div className="grid grid-cols-1 gap-2">
+            {Object.entries(fertilizers).map(([fertilizer, amount]: [string, any]) => (
+              <div key={fertilizer} className="flex justify-between items-center bg-muted/50 px-2 py-1 rounded text-xs">
+                <span className="font-medium uppercase">{fertilizer}:</span>
+                <span>{String(amount)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    }).filter(Boolean);
+
+    return (
+      <div className="space-y-2">
+        {timelineStages.length > 0 ? timelineStages : (
+          <span className="text-muted-foreground text-xs">No fertilizer data available</span>
+        )}
+      </div>
+    );
+  };
+
+  // Compact version for card display
+  const getFertilizerSummary = (fertilizerSchedule: any): string => {
+    if (!fertilizerSchedule || typeof fertilizerSchedule !== 'object') {
+      return 'No fertilizer info';
+    }
+
+    // Check if it has regional variations
+    const hasRegionalVariations = Object.keys(fertilizerSchedule).some(key => 
+      typeof fertilizerSchedule[key] === 'object' && 
+      fertilizerSchedule[key].basal !== undefined
+    );
+
+    if (hasRegionalVariations) {
+      const regions = Object.keys(fertilizerSchedule);
+      return `${regions.length} region(s) with schedule`;
+    } else {
+      const stages = Object.keys(fertilizerSchedule);
+      return `${stages.length} application stages`;
+    }
+  };
 
   return (
     <div className="container mx-auto p-6 space-y-6">
@@ -497,11 +597,7 @@ export default function CropPlanningPage() {
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-semibold">
           {getResultsTitle()}
-          {filteredCrops.length > 0 && (
-            <span className="text-lg font-normal text-muted-foreground ml-2">
-              ({filteredCrops.length} found)
-            </span>
-          )}
+          
         </h2>
         <div className="flex items-center gap-2">
           <Filter className="h-4 w-4 text-muted-foreground" />
@@ -555,7 +651,7 @@ export default function CropPlanningPage() {
         </div>
       )}
 
-      {/* Crops Grid */}
+      {/* Crops Grid - Updated with Planting and Harvest Time */}
       {!isLoading && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredCrops.length > 0 ? (
@@ -565,43 +661,30 @@ export default function CropPlanningPage() {
                 className="cursor-pointer hover:shadow-lg transition-shadow"
                 onClick={() => handleCropSelect(crop)}
               >
-                <CardHeader className="pb-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {getImageDisplay(crop)}
-                      <div>
-                        <CardTitle className="text-lg">{crop.name}</CardTitle>
-                        <Badge variant={getSuitabilityBadge(crop.suitability)} className="text-xs mt-1">
-                          {crop.suitability}% Suitable
-                        </Badge>
-                      </div>
-                    </div>
-                    <ChevronRight className="h-5 w-5 text-muted-foreground" />
+                <CardHeader className="pb-2">
+                  <div className="flex items-center gap-3">
+                    {getImageDisplay(crop)}
+                    <CardTitle className="text-lg">{crop.name}</CardTitle>
                   </div>
                 </CardHeader>
+                
                 <CardContent className="space-y-3">
-                  <p className="text-sm text-muted-foreground line-clamp-2">{crop.description}</p>
+                  {/* Reduced Description */}
+                  <p className="text-sm text-muted-foreground line-clamp-2">
+                    {crop.description}
+                  </p>
                   
-                  <div className="grid grid-cols-2 gap-3 text-sm">
+                  {/* Planting and Harvest Time */}
+                  <div className="space-y-2">
                     <div className="flex items-center gap-2">
-                      <Calendar className="h-4 w-4 text-chart-3" />
-                      <span className="text-muted-foreground">Plant:</span>
-                      <span className="font-medium text-xs">{crop.plantingTime}</span>
+                      <Calendar className="h-4 w-4 text-green-600" />
+                      <span className="text-muted-foreground text-sm">Planting:</span>
+                      <span className="font-medium text-sm">{crop.plantingTime}</span>
                     </div>
                     <div className="flex items-center gap-2">
-                      <Clock className="h-4 w-4 text-chart-4" />
-                      <span className="text-muted-foreground">Harvest:</span>
-                      <span className="font-medium text-xs">{getHarvestTimeDisplay(crop.harvestTime)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Droplets className="h-4 w-4 text-chart-2" />
-                      <span className="text-muted-foreground">Water:</span>
-                      <span className="font-medium text-xs">{crop.waterRequirement}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Thermometer className="h-4 w-4 text-chart-1" />
-                      <span className="text-muted-foreground">Temp:</span>
-                      <span className="font-medium text-xs">{getTemperatureDisplay(crop)}</span>
+                      <Clock className="h-4 w-4 text-orange-600" />
+                      <span className="text-muted-foreground text-sm">Harvest:</span>
+                      <span className="font-medium text-sm">{getHarvestTimeDisplay(crop.harvestTime)}</span>
                     </div>
                   </div>
                 </CardContent>
@@ -648,8 +731,8 @@ export default function CropPlanningPage() {
                 </SheetDescription>
               </SheetHeader>
 
-              <ScrollArea className="h-[calc(100vh-200px)] mt-6 p-4">
-                <div className="space-y-6">
+              <ScrollArea className="h-[calc(100vh-200px)]  p-10">
+                <div className="space-y-6 ">
                   {/* Basic Information */}
                   <div>
                     <h3 className="text-lg font-semibold mb-3">Basic Information</h3>
@@ -682,44 +765,93 @@ export default function CropPlanningPage() {
                       
                       {selectedCrop.detailedInstructions.soilPreparation && (
                         <div>
-                          <h4 className="font-medium text-primary mb-2">Soil Preparation</h4>
-                          <p className="text-sm text-muted-foreground">{selectedCrop.detailedInstructions.soilPreparation}</p>
+                          <h4 className="font-medium text-primary mb-2 text-sm flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              🌱
+                              <span>Soil Preparation</span>
+                            </div>
+                          </h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {selectedCrop.detailedInstructions.soilPreparation}
+                          </p>
                         </div>
                       )}
 
                       {selectedCrop.detailedInstructions.planting && (
                         <div>
-                          <h4 className="font-medium text-primary mb-2">Planting</h4>
-                          <p className="text-sm text-muted-foreground">{selectedCrop.detailedInstructions.planting}</p>
+                          <h4 className="font-medium text-primary mb-2 text-sm flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              🌿
+                              <span>Planting</span>
+                            </div>
+                          </h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {selectedCrop.detailedInstructions.planting}
+                          </p>
                         </div>
                       )}
 
                       {selectedCrop.detailedInstructions.care && (
                         <div>
-                          <h4 className="font-medium text-primary mb-2">Care & Maintenance</h4>
-                          <p className="text-sm text-muted-foreground">{selectedCrop.detailedInstructions.care}</p>
+                          <h4 className="font-medium text-primary mb-2 text-sm flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              🚿
+                              <span>Care & Maintenance</span>
+                            </div>
+                          </h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {selectedCrop.detailedInstructions.care}
+                          </p>
                         </div>
                       )}
 
                       {selectedCrop.detailedInstructions.pests && (
                         <div>
-                          <h4 className="font-medium text-primary mb-2">Pest Management</h4>
+                          <h4 className="font-medium text-primary mb-2 text-sm flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              🛡️
+                              <span>Pest Management</span>
+                            </div>
+                          </h4>
                           {Array.isArray(selectedCrop.detailedInstructions.pests) ? (
-                            <ul className="text-sm text-muted-foreground list-disc list-inside">
+                            <ul className="text-sm text-muted-foreground list-disc list-inside space-y-1">
                               {selectedCrop.detailedInstructions.pests.map((pest: string, index: number) => (
-                                <li key={index}>{pest}</li>
+                                <li key={index} className="leading-relaxed">{pest}</li>
                               ))}
                             </ul>
                           ) : (
-                            <p className="text-sm text-muted-foreground">{selectedCrop.detailedInstructions.pests}</p>
+                            <p className="text-sm text-muted-foreground leading-relaxed">
+                              {selectedCrop.detailedInstructions.pests}
+                            </p>
                           )}
                         </div>
                       )}
 
+                      {selectedCrop.detailedInstructions.fertilizerSchedule && (
+                         <>
+                      <div>
+                        <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                          <Leaf className="h-5 w-5 text-green-600" />
+                          Fertilizer Schedule
+                        </h4>
+                        <div className="bg-muted/30 p-4 rounded-lg">
+                          {getFertilizerDisplay(selectedCrop.detailedInstructions.fertilizerSchedule)}
+                        </div>
+                      </div>
+                      <Separator />
+                    </>)}
+
                       {selectedCrop.detailedInstructions.harvest && (
                         <div>
-                          <h4 className="font-medium text-primary mb-2">Harvesting</h4>
-                          <p className="text-sm text-muted-foreground">{selectedCrop.detailedInstructions.harvest}</p>
+                          <h4 className="text-lg font-semibold mb-3 flex items-center gap-2">
+                            <div className="flex items-center gap-1">
+                              🌾
+                              <span>Harvesting</span>
+                            </div>
+                          </h4>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {selectedCrop.detailedInstructions.harvest}
+                          </p>
                         </div>
                       )}
                     </div>

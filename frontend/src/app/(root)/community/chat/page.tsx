@@ -37,6 +37,7 @@ export default function ChatPage() {
   const [isClearing, setIsClearing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isClient, setIsClient] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -45,10 +46,17 @@ export default function ChatPage() {
     setIsClient(true);
   }, []);
 
-  // Load messages from localStorage on component mount
+  // Load messages and session ID from localStorage on component mount
   useEffect(() => {
     if (!isClient) return; // Wait for client-side hydration
 
+    // Load session ID
+    const savedSessionId = localStorage.getItem("agrotech-chat-session-id");
+    if (savedSessionId) {
+      setSessionId(savedSessionId);
+    }
+
+    // Load messages
     const savedMessages = localStorage.getItem("agrotech-chat-messages");
     if (savedMessages) {
       try {
@@ -68,6 +76,13 @@ export default function ChatPage() {
   useEffect(() => {
     localStorage.setItem("agrotech-chat-messages", JSON.stringify(messages));
   }, [messages]);
+
+  // Save session ID to localStorage whenever it changes
+  useEffect(() => {
+    if (sessionId) {
+      localStorage.setItem("agrotech-chat-session-id", sessionId);
+    }
+  }, [sessionId]);
 
   // Auto-scroll to bottom when new messages are added
   useEffect(() => {
@@ -138,6 +153,7 @@ export default function ChatPage() {
         mode: "cors",
         body: JSON.stringify({
           message: messageToSend,
+          session_id: sessionId, // Include current session ID
         }),
       });
 
@@ -146,6 +162,11 @@ export default function ChatPage() {
       }
 
       const data = await response.json();
+
+      // Update session ID if we got a new one from the server
+      if (data.session_id && data.session_id !== sessionId) {
+        setSessionId(data.session_id);
+      }
 
       const botMessage: Message = {
         id: (Date.now() + 1).toString(),
@@ -180,8 +201,12 @@ export default function ChatPage() {
   const clearChat = async () => {
     setIsClearing(true);
     try {
-      // Clear chat history on the server
-      const response = await fetch(`${API_BASE_URL}/chat/clear`, {
+      // Clear chat history on the server for this specific session
+      const clearUrl = sessionId
+        ? `${API_BASE_URL}/chat/clear?session_id=${sessionId}`
+        : `${API_BASE_URL}/chat/clear`;
+
+      const response = await fetch(clearUrl, {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -195,15 +220,19 @@ export default function ChatPage() {
         );
       }
 
-      // Clear local chat regardless of server response
+      // Clear local chat and session data
       setMessages([initialBotMessage]);
+      setSessionId(null);
       localStorage.removeItem("agrotech-chat-messages");
+      localStorage.removeItem("agrotech-chat-session-id");
       setError(null); // Clear any errors too
     } catch (error) {
       console.error("Error clearing chat:", error);
       // Still clear local chat even if server call fails
       setMessages([initialBotMessage]);
+      setSessionId(null);
       localStorage.removeItem("agrotech-chat-messages");
+      localStorage.removeItem("agrotech-chat-session-id");
       setError(null);
     } finally {
       setIsClearing(false);

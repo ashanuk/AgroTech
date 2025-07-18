@@ -1,7 +1,7 @@
 "use client";
 
-import { Calendar, Home, Inbox, Search, Settings, Sprout } from "lucide-react";
-import { NavUser } from "@/components/nav-user";
+import { BarChart, BookOpen, Calendar, Cog, Droplets, Home, Inbox, MessagesSquare, Search, Settings, ShoppingCart, Sprout, Truck, Users } from "lucide-react"
+import { NavUser } from "@/components/nav-user"
 
 import {
   Sidebar,
@@ -27,12 +27,12 @@ const smartCropManagementItems = [
   {
     title: "Crop Planning Module",
     url: "/crop-management/crop-planning",
-    icon: Home,
+    icon: Sprout,
   },
   {
     title: "Disease & Pest Detection",
     url: "#",
-    icon: Inbox,
+    icon: Search,
   },
   {
     title: "Farming Calendar",
@@ -45,7 +45,7 @@ const resourceOptimizationItems = [
   {
     title: "Precision Irrigation System",
     url: "#",
-    icon: Home,
+    icon: Droplets,
   },
   {
     title: "Fertilizer & Pesticide Management",
@@ -55,7 +55,7 @@ const resourceOptimizationItems = [
   {
     title: "Equipment & Technology Integration",
     url: "#",
-    icon: Calendar,
+    icon: Cog,
   },
 ];
 
@@ -63,17 +63,17 @@ const marketIntelligentItems = [
   {
     title: "Price Analytics",
     url: "/market/price-prediction",
-    icon: Home,
+    icon: BarChart,
   },
   {
     title: "Marketplace",
-    url: "#",
-    icon: Inbox,
+    url: "/market",
+    icon: ShoppingCart,
   },
   {
     title: "Supply Chain Tracking",
     url: "#",
-    icon: Calendar,
+    icon: Truck,
   },
 ];
 
@@ -81,17 +81,17 @@ const communityItems = [
   {
     title: "Farmer Forum",
     url: "/community/forum",
-    icon: Home,
+    icon: Users,
   },
   {
     title: "Expert Consultation",
     url: "#",
-    icon: Inbox,
+    icon: MessagesSquare,
   },
   {
     title: "Learning Center",
     url: "#",
-    icon: Calendar,
+    icon: BookOpen,
   },
 ];
 
@@ -189,7 +189,7 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <SidebarGroup>
+        {/* <SidebarGroup>
           <SidebarGroupLabel>Resource Optimization</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
@@ -205,7 +205,7 @@ export function AppSidebar() {
               ))}
             </SidebarMenu>
           </SidebarGroupContent>
-        </SidebarGroup>
+        </SidebarGroup> */}
 
         <SidebarGroup>
           <SidebarGroupLabel>Market Intelligent Platform</SidebarGroupLabel>

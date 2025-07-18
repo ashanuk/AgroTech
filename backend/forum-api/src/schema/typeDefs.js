@@ -4,6 +4,7 @@ const typeDefs = gql`
   type User {
     id: ID!
     username: String!
+    name: String
     email: String!
     avatar_url: String
     bio: String
@@ -52,6 +53,45 @@ const typeDefs = gql`
     reply_count: Int!
   }
 
+  type Location {
+    type: String!
+    coordinates: [Float!]!
+  }
+
+  type Product {
+    id: ID!
+    farmerId: String!
+    farmer: User!
+    title: String!
+    description: String!
+    cropType: String!
+    pricePerKg: Float!
+    totalQuantityKg: Float!
+    availableQuantityKg: Float!
+    unit: String!
+    images: [String!]!
+    location: Location
+    address: String
+    createdAt: String!
+    updatedAt: String!
+    replies: [Post!]!
+    reply_count: Int!
+  }
+
+  type Reservation {
+    id: ID!
+    buyerId: String!
+    buyer: User!
+    productId: String!
+    product: Product!
+    quantityKg: Float!
+    status: String!
+    reservedAt: String!
+    fulfilledAt: String
+    updatedAt: String!
+    canCancel: Boolean!
+  }
+
   input CreateCategoryInput {
     name: String!
     description: String!
@@ -74,8 +114,46 @@ const typeDefs = gql`
     image_urls: [String!]
   }
 
+  input LocationInput {
+    type: String!
+    coordinates: [Float!]!
+  }
+
+  input CreateProductInput {
+    farmerId: String!
+    title: String!
+    description: String!
+    cropType: String!
+    pricePerKg: Float!
+    totalQuantityKg: Float!
+    availableQuantityKg: Float!
+    unit: String!
+    images: [String!]
+    location: LocationInput
+    address: String
+  }
+
+  input UpdateProductInput {
+    title: String
+    description: String
+    cropType: String
+    pricePerKg: Float
+    totalQuantityKg: Float
+    availableQuantityKg: Float
+    unit: String
+    images: [String!]
+    location: LocationInput
+    address: String
+  }
+
+  input CreateReservationInput {
+    productId: String!
+    quantityKg: Float!
+  }
+
   input RegisterInput {
     username: String!
+    name: String
     email: String!
     password: String!
   }
@@ -108,6 +186,18 @@ const typeDefs = gql`
     users: [User!]!
     user(id: ID!): User
     me: User
+
+    # Products
+    products(limit: Int, offset: Int, cropType: String, farmerId: String): [Product!]!
+    product(id: ID!): Product
+    searchProducts(query: String!, limit: Int, offset: Int): [Product!]!
+    searchProductSuggestions(query: String!, limit: Int): [String!]!
+    nearbyProducts(longitude: Float!, latitude: Float!, maxDistance: Float, limit: Int): [Product!]!
+
+    # Reservations
+    reservations(buyerId: String, status: String): [Reservation!]!
+    reservation(id: ID!): Reservation
+    myReservations: [Reservation!]!
   }
 
   type Mutation {
@@ -133,6 +223,16 @@ const typeDefs = gql`
     deletePost(id: ID!): Boolean!
     likePost(id: ID!): Post!
     unlikePost(id: ID!): Post!
+
+    # Products
+    createProduct(input: CreateProductInput!): Product!
+    updateProduct(id: ID!, input: UpdateProductInput!): Product!
+    deleteProduct(id: ID!): Boolean!
+
+    # Reservations
+    createReservation(input: CreateReservationInput!): Reservation!
+    cancelReservation(id: ID!): Reservation!
+    fulfillReservation(id: ID!): Reservation!
   }
 `;
 

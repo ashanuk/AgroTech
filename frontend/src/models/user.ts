@@ -9,7 +9,7 @@ interface IUser extends Document {
     _id: mongoose.Types.ObjectId;
     name: string;
     email: string;
-    password?: string; // Github login donot need password
+    password: string;
     location?: ILocation;
     address?: string; // Human readable address from location
     username?: string;
@@ -33,7 +33,7 @@ const UserSchema: Schema<IUser> = new mongoose.Schema({
     },
     password: {
         type: String,
-        required: false
+        required: true
     },
     location: {
         type: {

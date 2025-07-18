@@ -70,6 +70,24 @@ const client = new ApolloClient({
               return [...existing, ...incoming];
             },
           },
+          products: {
+            keyArgs: ["cropType", "farmerId"],
+            merge(existing = [], incoming) {
+              return [...existing, ...incoming];
+            },
+          },
+          searchProducts: {
+            keyArgs: ["query"],
+            merge(existing = [], incoming) {
+              return incoming; // Replace existing results for new searches
+            },
+          },
+          nearbyProducts: {
+            keyArgs: ["latitude", "longitude", "maxDistance"],
+            merge(existing = [], incoming) {
+              return incoming; // Replace existing results for new location queries
+            },
+          },
         },
       },
       Thread: {
@@ -88,6 +106,11 @@ const client = new ApolloClient({
               return [...existing, ...incoming];
             },
           },
+        },
+      },
+      Product: {
+        fields: {
+          // Add any specific product field policies if needed
         },
       },
     },

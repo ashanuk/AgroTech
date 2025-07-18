@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, Dict
 from app.crop_recommendation import CropRecommendationSystem
 from fastapi import FastAPI, UploadFile, File,Request,HTTPException, Query
 from app.train import initial_train_model, retrain_model
@@ -8,6 +8,7 @@ from app.agent import chat_app
 from langchain.schema import BaseMessage  # optional import for clarity
 from pydantic import BaseModel
 from typing import List
+import uuid
 
 
 app = FastAPI()
@@ -48,6 +49,14 @@ class ManualCropRequest(BaseModel):
     ph: float
     rainfall: float
     humidity: float
+
+class ChatRequest(BaseModel):
+    message: str
+    session_id: Optional[str] = None
+
+class ChatResponse(BaseModel):
+    reply: str
+    session_id: str
 
 @app.get("/")
 def root():
@@ -242,23 +251,35 @@ def get_suitable_crops_manual(request: ManualCropRequest):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting suitable crops: {str(e)}")
 
-chat_turns: List[tuple[str, str]] = []
+# User-specific chat memory using session IDs
+user_chat_sessions: Dict[str, List[tuple[str, str]]] = {}
 
-@app.post("/chat")
-async def chat(request: Request):
-    data = await request.json()
-    user_input = data.get("message")
-
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    user_input = request.message
+    session_id = request.session_id
+    # print(f"Received chat request: {user_input} (Session ID: {session_id})")
     if not user_input:
-        return {"error": "No message provided."}
+        raise HTTPException(status_code=400, detail="No message provided.")
 
-    # Build formatted prompt
+    # Generate new session ID if not provided
+    if not session_id:
+        session_id = str(uuid.uuid4())
+    
+    # Initialize session if it doesn't exist
+    if session_id not in user_chat_sessions:
+        user_chat_sessions[session_id] = []
+    
+    # Get chat history for this specific session
+    chat_turns = user_chat_sessions[session_id]
+
+    # Build formatted prompt with session-specific history
     formatted_past = ""
     for user_msg, assistant_msg in chat_turns:
         formatted_past += f"User: {user_msg}\nAssistant: {assistant_msg}\n"
 
     full_prompt = (
-        "You are a helpful assistant.\n"
+        "You are a helpful assistant for agricultural advice and recommendations.\n"
         + ("Previous conversation:\n" + formatted_past if formatted_past else "")
         + "\nCurrent question:\n"
         + f"User: {user_input}"
@@ -268,7 +289,7 @@ async def chat(request: Request):
     result = chat_app.invoke({
         "messages": [{"role": "user", "content": full_prompt}]
     })
-    print(f"Result: {result['messages']}")
+    print(f"Session {session_id} - Result: {result['messages']}")
     
     # Extract the final AI response (get the last meaningful AI message)
     ai_response = ""
@@ -294,38 +315,89 @@ async def chat(request: Request):
     if not ai_response:
         ai_response = "I apologize, but I couldn't generate a proper response. Please try rephrasing your question."
 
-    # Save to chat history
-    chat_turns.append((user_input, ai_response))
+    # Save to session-specific chat history
+    user_chat_sessions[session_id].append((user_input, ai_response))
 
-    return {"reply": ai_response}
+    return ChatResponse(reply=ai_response, session_id=session_id)
 
 @app.delete("/chat/clear")
-async def clear_chat():
+async def clear_chat(session_id: Optional[str] = Query(None)):
     """
-    Clear the chat history
+    Clear the chat history for a specific session or all sessions
     
-    Removes all stored conversation history from the server.
-    This will reset the chat context for future conversations.
+    Args:
+        session_id: Optional session ID. If provided, clears only that session.
+                   If not provided, clears all sessions.
     """
-    global chat_turns
-    chat_turns = []
+    global user_chat_sessions
     
-    return {
-        "success": True,
-        "message": "Chat history cleared successfully",
-        "chat_turns_count": len(chat_turns)
-    }
+    if session_id:
+        # Clear specific session
+        if session_id in user_chat_sessions:
+            user_chat_sessions[session_id] = []
+            return {
+                "success": True,
+                "message": f"Chat history cleared for session {session_id}",
+                "session_id": session_id,
+                "chat_turns_count": 0
+            }
+        else:
+            raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+    else:
+        # Clear all sessions
+        user_chat_sessions = {}
+        return {
+            "success": True,
+            "message": "All chat histories cleared successfully",
+            "total_sessions_cleared": len(user_chat_sessions)
+        }
 
 @app.get("/chat/history")
-async def get_chat_history():
+async def get_chat_history(session_id: Optional[str] = Query(None)):
     """
-    Get the current chat history
+    Get the chat history for a specific session or all sessions
     
-    Returns the conversation history stored on the server.
+    Args:
+        session_id: Optional session ID. If provided, returns only that session's history.
+                   If not provided, returns all sessions.
     """
+    if session_id:
+        # Get specific session history
+        if session_id in user_chat_sessions:
+            return {
+                "success": True,
+                "session_id": session_id,
+                "chat_turns": user_chat_sessions[session_id],
+                "total_conversations": len(user_chat_sessions[session_id])
+            }
+        else:
+            raise HTTPException(status_code=404, detail=f"Session {session_id} not found")
+    else:
+        # Get all sessions
+        return {
+            "success": True,
+            "all_sessions": user_chat_sessions,
+            "total_sessions": len(user_chat_sessions),
+            "total_conversations": sum(len(turns) for turns in user_chat_sessions.values())
+        }
+
+@app.get("/chat/sessions")
+async def get_active_sessions():
+    """
+    Get list of all active chat sessions
+    
+    Returns basic information about all active sessions without the full chat history.
+    """
+    sessions_info = {}
+    for session_id, chat_turns in user_chat_sessions.items():
+        sessions_info[session_id] = {
+            "conversation_count": len(chat_turns),
+            "last_activity": chat_turns[-1] if chat_turns else None
+        }
+    
     return {
         "success": True,
-        "chat_turns": chat_turns,
-        "total_conversations": len(chat_turns)
+        "active_sessions": sessions_info,
+        "total_sessions": len(user_chat_sessions)
     }
 

@@ -359,6 +359,7 @@ export const GET_USERS = gql`
   query GetUsers {
     users {
       id
+      name
       username
       email
       avatar_url
@@ -374,6 +375,7 @@ export const GET_USER = gql`
   query GetUser($id: ID!) {
     user(id: $id) {
       id
+      name
       username
       email
       avatar_url
@@ -384,3 +386,326 @@ export const GET_USER = gql`
     }
   }
 `;
+
+// Product Queries & Mutations
+export const GET_PRODUCTS = gql`
+  query GetProducts($limit: Int, $offset: Int, $cropType: String, $farmerId: String) {
+    products(limit: $limit, offset: $offset, cropType: $cropType, farmerId: $farmerId) {
+      id
+      farmerId
+      title
+      description
+      cropType
+      pricePerKg
+      totalQuantityKg
+      availableQuantityKg
+      unit
+      images
+      location {
+        type
+        coordinates
+      }
+      address
+      createdAt
+      updatedAt
+      farmer {
+        id
+        name
+        email
+        avatar_url
+        is_verified
+      }
+    }
+  }
+`;
+
+export const GET_PRODUCT = gql`
+  query GetProduct($id: ID!) {
+    product(id: $id) {
+      id
+      farmerId
+      title
+      description
+      cropType
+      pricePerKg
+      totalQuantityKg
+      availableQuantityKg
+      unit
+      images
+      location {
+        type
+        coordinates
+      }
+      address
+      createdAt
+      updatedAt
+      farmer {
+        id
+        name
+        email
+        avatar_url
+        is_verified
+      }
+    }
+  }
+`;
+
+export const SEARCH_PRODUCTS = gql`
+  query SearchProducts($query: String!, $limit: Int, $offset: Int) {
+    searchProducts(query: $query, limit: $limit, offset: $offset) {
+      id
+      farmerId
+      title
+      description
+      cropType
+      pricePerKg
+      totalQuantityKg
+      availableQuantityKg
+      unit
+      images
+      location {
+        type
+        coordinates
+      }
+      address
+      createdAt
+      updatedAt
+      farmer {
+        id
+        username
+        name
+        email
+        avatar_url
+        is_verified
+      }
+    }
+  }
+`;
+
+export const SEARCH_PRODUCT_SUGGESTIONS = gql`
+  query SearchProductSuggestions($query: String!, $limit: Int) {
+    searchProductSuggestions(query: $query, limit: $limit)
+  }
+`;
+
+export const GET_NEARBY_PRODUCTS = gql`
+  query GetNearbyProducts($longitude: Float!, $latitude: Float!, $maxDistance: Float, $limit: Int) {
+    nearbyProducts(longitude: $longitude, latitude: $latitude, maxDistance: $maxDistance, limit: $limit) {
+      id
+      farmerId
+      title
+      description
+      cropType
+      pricePerKg
+      totalQuantityKg
+      availableQuantityKg
+      unit
+      images
+      location {
+        type
+        coordinates
+      }
+      address
+      createdAt
+      updatedAt
+      farmer {
+        id
+        name
+        email
+        avatar_url
+        is_verified
+      }
+    }
+  }
+`;
+
+export const CREATE_PRODUCT_MUTATION = gql`
+  mutation CreateProduct($input: CreateProductInput!) {
+    createProduct(input: $input) {
+      id
+      farmerId
+      title
+      description
+      cropType
+      pricePerKg
+      totalQuantityKg
+      availableQuantityKg
+      unit
+      images
+      location {
+        type
+        coordinates
+      }
+      address
+      createdAt
+      updatedAt
+      farmer {
+        id
+        name
+        email
+        avatar_url
+        is_verified
+      }
+    }
+  }
+`;
+
+export const UPDATE_PRODUCT_MUTATION = gql`
+  mutation UpdateProduct($id: ID!, $input: UpdateProductInput!) {
+    updateProduct(id: $id, input: $input) {
+      id
+      farmerId
+      title
+      description
+      cropType
+      pricePerKg
+      totalQuantityKg
+      availableQuantityKg
+      unit
+      images
+      location {
+        type
+        coordinates
+      }
+      address
+      createdAt
+      updatedAt
+      farmer {
+        id
+        name
+        email
+        avatar_url
+        is_verified
+      }
+    }
+  }
+`;
+
+export const DELETE_PRODUCT_MUTATION = gql`
+  mutation DeleteProduct($id: ID!) {
+    deleteProduct(id: $id)
+  }
+`;
+
+// Reservation Queries & Mutations
+export const GET_MY_RESERVATIONS = gql`
+  query GetMyReservations {
+    myReservations {
+      id
+      buyerId
+      productId
+      quantityKg
+      status
+      reservedAt
+      fulfilledAt
+      updatedAt
+      canCancel
+      product {
+        id
+        title
+        description
+        cropType
+        pricePerKg
+        unit
+        images
+        address
+        farmer {
+          id
+          name
+          username
+          email
+          is_verified
+        }
+      }
+    }
+  }
+`;
+
+export const GET_RESERVATIONS = gql`
+  query GetReservations($buyerId: String, $status: String) {
+    reservations(buyerId: $buyerId, status: $status) {
+      id
+      buyerId
+      productId
+      quantityKg
+      status
+      reservedAt
+      fulfilledAt
+      updatedAt
+      canCancel
+      buyer {
+        id
+        name
+        username
+        email
+        is_verified
+      }
+      product {
+        id
+        title
+        description
+        cropType
+        pricePerKg
+        unit
+        images
+        address
+      }
+    }
+  }
+`;
+
+export const CREATE_RESERVATION_MUTATION = gql`
+  mutation CreateReservation($input: CreateReservationInput!) {
+    createReservation(input: $input) {
+      id
+      buyerId
+      productId
+      quantityKg
+      status
+      reservedAt
+      fulfilledAt
+      updatedAt
+      product {
+        id
+        title
+        description
+        cropType
+        pricePerKg
+        unit
+        images
+        address
+        availableQuantityKg
+        farmer {
+          id
+          name
+          username
+          email
+          is_verified
+        }
+      }
+    }
+  }
+`;
+
+export const CANCEL_RESERVATION_MUTATION = gql`
+  mutation CancelReservation($id: ID!) {
+    cancelReservation(id: $id) {
+      id
+      status
+      updatedAt
+    }
+  }
+`;
+
+export const FULFILL_RESERVATION_MUTATION = gql`
+  mutation FulfillReservation($id: ID!) {
+    fulfillReservation(id: $id) {
+      id
+      status
+      fulfilledAt
+      updatedAt
+    }
+  }
+`;
+
+
