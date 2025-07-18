@@ -12,16 +12,19 @@ const httpLink = createHttpLink({
     process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || "http://localhost:4001/graphql",
 });
 
-const authLink = setContext((_, { headers }) => {
-  // Use a mock token for development (matches seeded user)
-  const mockToken =
-    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJtb2NrLXVzZXItaWQiLCJpYXQiOjE1MTYyMzkwMjJ9.mock-signature";
+const authLink = setContext(async (_, { headers }) => {
+  // Get the token from localStorage
+  let token = null;
+
+  if (typeof window !== "undefined") {
+    token = localStorage.getItem("apollo-token");
+  }
 
   // Return the headers to the context so httpLink can read them
   return {
     headers: {
       ...headers,
-      authorization: `Bearer ${mockToken}`,
+      authorization: token ? `Bearer ${token}` : "",
     },
   };
 });

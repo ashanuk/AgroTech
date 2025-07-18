@@ -6,6 +6,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import GraphQLProvider from "@/providers/GraphQLProvider";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/app-sidebar";
+import AuthSync from "@/components/auth-sync";
 
 import { Toaster } from "@/components/ui/sonner";
 import Providers from "@/components/providers";
@@ -32,10 +33,9 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-
   const session = await auth();
   if (!session) {
-    redirect('/login')
+    redirect("/login");
   }
 
   return (
@@ -49,25 +49,19 @@ export default async function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-
-          <Providers>
-
-
-        <GraphQLProvider>
-
-          <SidebarProvider>
-            <AppSidebar />
-            <SidebarTrigger />
-            <main className="p-2 w-full">
-              <Toaster position="top-right"/>
-              {children}
-            </main>
-
-          </SidebarProvider>
-
-
-            </GraphQLProvider>
-          </Providers>
+          <GraphQLProvider>
+            <SidebarProvider>
+              <Providers>
+                <AuthSync />
+                <AppSidebar />
+              </Providers>
+              <SidebarTrigger />
+              <main className="p-2 w-full">
+                <Toaster position="top-right" />
+                {children}
+              </main>
+            </SidebarProvider>
+          </GraphQLProvider>
 
         </ThemeProvider>
       </body>

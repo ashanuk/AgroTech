@@ -1,4 +1,4 @@
-"use client"
+"use client";
 
 import { BarChart, BookOpen, Calendar, Cog, Droplets, Home, Inbox, MessagesSquare, Search, Settings, ShoppingCart, Sprout, Truck, Users } from "lucide-react"
 import { NavUser } from "@/components/nav-user"
@@ -13,14 +13,15 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarHeader,
-  SidebarFooter
-} from "@/components/ui/sidebar"
-import { useRouter } from "next/navigation"
-import { signOut } from "next-auth/react"
+  SidebarFooter,
+} from "@/components/ui/sidebar";
+import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { useSession } from "next-auth/react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { graphQLLogout } from "@/lib/graphql-auth";
 
-import { ModeToggle } from "./mode-toggle"
+import { ModeToggle } from "./mode-toggle";
 
 const smartCropManagementItems = [
   {
@@ -38,7 +39,7 @@ const smartCropManagementItems = [
     url: "#",
     icon: Calendar,
   },
-]
+];
 
 const resourceOptimizationItems = [
   {
@@ -56,7 +57,7 @@ const resourceOptimizationItems = [
     url: "#",
     icon: Cog,
   },
-]
+];
 
 const marketIntelligentItems = [
   {
@@ -74,7 +75,7 @@ const marketIntelligentItems = [
     url: "#",
     icon: Truck,
   },
-]
+];
 
 const communityItems = [
   {
@@ -92,10 +93,9 @@ const communityItems = [
     url: "#",
     icon: BookOpen,
   },
-]
+];
 
 export function AppSidebar() {
-
   const router = useRouter();
   const { data: session, status } = useSession();
   console.log("Session Data:", session);
@@ -115,9 +115,14 @@ export function AppSidebar() {
   // }
 
   const handleSignout = async () => {
+    // Clear GraphQL tokens
+    graphQLLogout();
+
+    // Sign out from NextAuth
     await signOut({ redirect: false });
+
     router.push("/login");
-  }
+  };
 
   // Handle Loading State
   if (status === "loading") {
@@ -152,8 +157,6 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
-
-
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
@@ -239,7 +242,6 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
-
       </SidebarContent>
 
       <SidebarFooter>
@@ -249,5 +251,5 @@ export function AppSidebar() {
         </div>
       </SidebarFooter>
     </Sidebar>
-  )
+  );
 }
