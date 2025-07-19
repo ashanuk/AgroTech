@@ -42,7 +42,7 @@ interface MarketItem {
 
 interface RealMarketData {
   id: string
-  market: string
+  marketname: string
   date: string
   items: MarketItem[]
   totalItems: number
@@ -418,9 +418,9 @@ export default function MarketPage() {
       price: item.price,
       unit: item.unit,
       currency: 'LKR',
-      location: `${market.market}, Sri Lanka`,
-      district: market.market,
-      market: market.market,
+      location: `${market.marketname}, Sri Lanka`,
+      district: market.marketname,
+      market: market.marketname,
       date: market.date,
       trend: 'stable' as const,
       quality: item.price > 200 ? 'premium' : item.price > 100 ? 'standard' : 'economy',
@@ -598,9 +598,9 @@ export default function MarketPage() {
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-center gap-3">
-                      <span className="text-4xl">{getMarketIcon(market.market)}</span>
+                      <span className="text-4xl">{getMarketIcon(market.marketname)}</span>
                       <div>
-                        <CardTitle className="text-lg">{market.market} Market</CardTitle>
+                        <CardTitle className="text-lg">{market.marketname} Market</CardTitle>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="outline" className="text-xs">
                             wholesale
@@ -621,7 +621,7 @@ export default function MarketPage() {
                     <div className="space-y-2 text-sm">
                       <div className="flex items-center gap-2">
                         <MapPin className="h-4 w-4 text-muted-foreground" />
-                        <span>{market.market}, Sri Lanka</span>
+                        <span>{market.marketname}, Sri Lanka</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Clock className="h-4 w-4 text-muted-foreground" />
@@ -861,12 +861,12 @@ export default function MarketPage() {
               <SheetHeader className="space-y-3 p-6 pb-4 border-b flex-shrink-0">
                 <div className="flex items-center gap-3">
                   <span className="text-4xl">
-                    {selectedMarket.market.toLowerCase().includes('pettah') ? '🏪' : 
-                     selectedMarket.market.toLowerCase().includes('dambulla') ? '🌽' : 
-                     selectedMarket.market.toLowerCase().includes('narahenpita') ? '🥬' : '🛒'}
+                    {selectedMarket.marketname.toLowerCase().includes('pettah') ? '🏪' : 
+                     selectedMarket.marketname.toLowerCase().includes('dambulla') ? '🌽' : 
+                     selectedMarket.marketname.toLowerCase().includes('narahenpita') ? '🥬' : '🛒'}
                   </span>
                   <div>
-                    <SheetTitle className="text-2xl">{selectedMarket.market} Market</SheetTitle>
+                    <SheetTitle className="text-2xl">{selectedMarket.marketname} Market</SheetTitle>
                     <div className="flex items-center gap-2 mt-1">
                       <Badge variant="outline" className="text-xs">
                         wholesale market
@@ -882,7 +882,7 @@ export default function MarketPage() {
                 </SheetDescription>
               </SheetHeader>
 
-              <ScrollArea className="flex-1 px-6">
+              <div className="flex-1 px-6 overflow-y-auto max-h-[calc(100vh-12rem)]">
                 <div className="space-y-6 py-6">
                   {/* Market Info */}
                   <div>
@@ -892,7 +892,7 @@ export default function MarketPage() {
                         <MapPin className="h-4 w-4 text-muted-foreground" />
                         <div>
                           <div className="font-medium text-sm">Location</div>
-                          <div className="text-sm text-muted-foreground">{selectedMarket.market}, Sri Lanka</div>
+                          <div className="text-sm text-muted-foreground">{selectedMarket.marketname}, Sri Lanka</div>
                         </div>
                       </div>
                       <div className="flex items-center gap-3 p-3 bg-muted rounded-lg">
@@ -960,7 +960,7 @@ export default function MarketPage() {
                   {/* Add bottom padding */}
                   <div className="h-20"></div>
                 </div>
-              </ScrollArea>
+              </div>
             </>
           )}
         </SheetContent>

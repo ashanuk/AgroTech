@@ -1,90 +1,64 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { MongoClient } from 'mongodb'
-
-const getMongoUri = () => {
-  const uri = process.env.MONGODB_URI
-  if (!uri) {
-    throw new Error('MONGODB_URI environment variable is not defined')
-  }
-  return uri
-}
+import { connectToDatabase } from '../../../lib/db'
+import Market from '../../../models/market'
 
 export async function GET(request: NextRequest) {
-  // First, try to use sample data without MongoDB for immediate functionality
-  const sampleMarkets = [
-    {
-      _id: 'sample1',
-      market: 'Pettah Market',
-      date: new Date().toISOString().split('T')[0],
-      items: [
-        { name: 'Tomatoes', unit: 'kg', price: 120 },
-        { name: 'Onions', unit: 'kg', price: 180 },
-        { name: 'Carrots', unit: 'kg', price: 150 },
-        { name: 'Potatoes', unit: 'kg', price: 100 },
-        { name: 'Cabbage', unit: 'kg', price: 80 }
-      ]
-    },
-    {
-      _id: 'sample2',
-      market: 'Dambulla Economic Centre',
-      date: new Date().toISOString().split('T')[0],
-      items: [
-        { name: 'Rice (White)', unit: 'kg', price: 190 },
-        { name: 'Rice (Red)', unit: 'kg', price: 210 },
-        { name: 'Coconut', unit: 'piece', price: 45 },
-        { name: 'Banana', unit: 'kg', price: 160 },
-        { name: 'Pineapple', unit: 'piece', price: 200 }
-      ]
-    },
-    {
-      _id: 'sample3',
-      market: 'Narahenpita Market',
-      date: new Date().toISOString().split('T')[0],
-      items: [
-        { name: 'Fish (Tuna)', unit: 'kg', price: 800 },
-        { name: 'Fish (Mackerel)', unit: 'kg', price: 400 },
-        { name: 'Prawns', unit: 'kg', price: 1200 },
-        { name: 'Crab', unit: 'kg', price: 1500 },
-        { name: 'Squid', unit: 'kg', price: 900 }
-      ]
-    },
-    {
-      _id: 'sample4',
-      market: 'Kandy Market',
-      date: new Date().toISOString().split('T')[0],
-      items: [
-        { name: 'Green Beans', unit: 'kg', price: 200 },
-        { name: 'Brinjal', unit: 'kg', price: 120 },
-        { name: 'Okra', unit: 'kg', price: 180 },
-        { name: 'Bitter Gourd', unit: 'kg', price: 140 },
-        { name: 'Drumsticks', unit: 'kg', price: 220 }
-      ]
-    }
-  ]
-
   try {
-    console.log('📋 Using sample market data for immediate functionality')
+    console.log('🔌 Connecting to MongoDB...')
+    await connectToDatabase()
     
-    // Transform data for API response
-    const transformedData = sampleMarkets.map(market => ({
-      id: market._id.toString(),
-      market: market.market,
-      date: market.date,
-      items: market.items || [],
-      totalItems: market.items ? market.items.length : 0,
-      averagePrice: market.items && market.items.length > 0 ? 
-        Math.round(market.items.reduce((sum: number, item: any) => sum + item.price, 0) / market.items.length) : 0
-    }))
+    // Fetch market data from MongoDB
+    const markets = await Market.find({}).sort({ date: -1 }).limit(50)
+    console.log(`📊 Found ${markets.length} market records`)
+    console.log('📅 Latest market dataaaaa:', markets)
+    
+    // Debug: Log the raw market data structure
+    if (markets.length > 0) {
+      console.log('🔍 First market raw data:', JSON.stringify(markets[0], null, 2))
+      console.log('🔍 First market toObject():', markets[0].toObject())
+      console.log('🔍 First market.market field:', markets[0].market)
+      console.log('🔍 All available fields:', Object.keys(markets[0].toObject()))
+    }
+    
+    if (markets.length === 0) {
+      console.log('⚠️ No market data found in database')
+      return NextResponse.json({
+        success: true,
+        data: [],
+        total: 0,
+        message: 'No market data available'
+      })
+    }
+
+    // Transform data for API response based on your database structure
+    const transformedData = markets.map(market => {
+      const marketObj = market.toObject() // Convert to plain object first
+      console.log('🔍 Market data:', { 
+        id: market._id, 
+        market: marketObj.market, // Use toObject() version
+        rawMarket: marketObj 
+      })
+      
+      return {
+        id: market._id?.toString() || market.id,
+        marketname: marketObj.market || 'Unknown Market', // Use marketObj.market
+        date: marketObj.date instanceof Date ? marketObj.date.toISOString().split('T')[0] : marketObj.date,
+        items: marketObj.items || [],
+        totalItems: marketObj.items ? marketObj.items.length : 0,
+        averagePrice: marketObj.items && marketObj.items.length > 0 ? 
+          Math.round(marketObj.items.reduce((sum: number, item: any) => sum + (item.price || 0), 0) / marketObj.items.length) : 0
+      }
+    })
 
     return NextResponse.json({
       success: true,
       data: transformedData,
       total: transformedData.length,
-      source: 'sample_data'
+      source: 'database'
     })
 
   } catch (error) {
-    console.error('Market API Error:', error)
+    console.error('❌ Market API Error:', error)
     return NextResponse.json(
       { 
         success: false, 
@@ -103,71 +77,50 @@ export async function POST(request: NextRequest) {
     const { action } = body
     
     if (action === 'summary') {
-      console.log('📊 Generating market summary from sample data')
+      console.log('📊 Generating market summary from database...')
       
-      // Use sample data for summary
-      const sampleMarkets = [
-        {
-          market: 'Pettah Market',
-          items: [
-            { name: 'Tomatoes', unit: 'kg', price: 120 },
-            { name: 'Onions', unit: 'kg', price: 180 },
-            { name: 'Carrots', unit: 'kg', price: 150 },
-            { name: 'Potatoes', unit: 'kg', price: 100 },
-            { name: 'Cabbage', unit: 'kg', price: 80 }
-          ]
-        },
-        {
-          market: 'Dambulla Economic Centre',
-          items: [
-            { name: 'Rice (White)', unit: 'kg', price: 190 },
-            { name: 'Rice (Red)', unit: 'kg', price: 210 },
-            { name: 'Coconut', unit: 'piece', price: 45 },
-            { name: 'Banana', unit: 'kg', price: 160 },
-            { name: 'Pineapple', unit: 'piece', price: 200 }
-          ]
-        },
-        {
-          market: 'Narahenpita Market',
-          items: [
-            { name: 'Fish (Tuna)', unit: 'kg', price: 800 },
-            { name: 'Fish (Mackerel)', unit: 'kg', price: 400 },
-            { name: 'Prawns', unit: 'kg', price: 1200 },
-            { name: 'Crab', unit: 'kg', price: 1500 },
-            { name: 'Squid', unit: 'kg', price: 900 }
-          ]
-        },
-        {
-          market: 'Kandy Market',
-          items: [
-            { name: 'Green Beans', unit: 'kg', price: 200 },
-            { name: 'Brinjal', unit: 'kg', price: 120 },
-            { name: 'Okra', unit: 'kg', price: 180 },
-            { name: 'Bitter Gourd', unit: 'kg', price: 140 },
-            { name: 'Drumsticks', unit: 'kg', price: 220 }
-          ]
-        }
-      ]
+      await connectToDatabase()
+      const markets = await Market.find({}).sort({ date: -1 }).limit(100)
       
-      const latestDate = new Date().toISOString().split('T')[0]
+      if (markets.length === 0) {
+        return NextResponse.json({
+          success: true,
+          summary: {
+            latestDate: new Date().toISOString().split('T')[0],
+            totalMarkets: 0,
+            totalItems: 0,
+            totalProducts: 0,
+            priceRange: { min: 0, max: 0, average: 0 },
+            markets: []
+          }
+        })
+      }
       
-      // Calculate statistics
-      const totalItems = sampleMarkets.reduce((sum, market) => sum + market.items.length, 0)
-      const allPrices = sampleMarkets.flatMap(market => market.items.map((item: any) => item.price))
+      const latestDate = markets[0]?.date instanceof Date ? 
+        markets[0].date.toISOString().split('T')[0] : 
+        markets[0]?.date || new Date().toISOString().split('T')[0]
+      
+      // Calculate statistics from real database data
+      const totalItems = markets.reduce((sum, market) => sum + (market.items?.length || 0), 0)
+      const allPrices = markets.flatMap(market => 
+        (market.items || []).map(item => item.price || 0).filter(price => price > 0)
+      )
       const avgPrice = allPrices.length > 0 ? 
         Math.round(allPrices.reduce((sum, price) => sum + price, 0) / allPrices.length) : 0
       const minPrice = allPrices.length > 0 ? Math.min(...allPrices) : 0
       const maxPrice = allPrices.length > 0 ? Math.max(...allPrices) : 0
       
-      // Get unique product categories
-      const allProducts = sampleMarkets.flatMap(market => market.items.map((item: any) => item.name))
+      // Get unique product names
+      const allProducts = markets.flatMap(market => 
+        (market.items || []).map(item => item.name).filter(name => name)
+      )
       const uniqueProducts = [...new Set(allProducts)]
       
       return NextResponse.json({
         success: true,
         summary: {
           latestDate,
-          totalMarkets: sampleMarkets.length,
+          totalMarkets: markets.length,
           totalItems,
           totalProducts: uniqueProducts.length,
           priceRange: {
@@ -175,12 +128,15 @@ export async function POST(request: NextRequest) {
             max: maxPrice,
             average: avgPrice
           },
-          markets: sampleMarkets.map(market => ({
-            name: market.market,
-            itemCount: market.items.length,
-            averagePrice: market.items.length > 0 ? 
-              Math.round(market.items.reduce((sum: number, item: any) => sum + item.price, 0) / market.items.length) : 0
-          }))
+          markets: markets.slice(0, 10).map(market => {
+            const marketObj = market.toObject()
+            return {
+              name: marketObj.market || 'Unknown Market',
+              itemCount: marketObj.items?.length || 0,
+              averagePrice: marketObj.items && marketObj.items.length > 0 ? 
+                Math.round(marketObj.items.reduce((sum, item) => sum + (item.price || 0), 0) / marketObj.items.length) : 0
+            }
+          })
         }
       })
     }
@@ -191,7 +147,7 @@ export async function POST(request: NextRequest) {
     )
     
   } catch (error) {
-    console.error('Market API POST Error:', error)
+    console.error('❌ Market API POST Error:', error)
     return NextResponse.json(
       { 
         success: false, 
