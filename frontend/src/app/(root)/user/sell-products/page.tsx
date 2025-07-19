@@ -385,7 +385,7 @@ useEffect(() => {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  ${products.reduce((sum, p) => sum + (p.availableQuantityKg || 0) * (p.pricePerKg || 0), 0).toFixed(2)}
+                  Rs {products.reduce((sum, p) => sum + (p.availableQuantityKg || 0) * (p.pricePerKg || 0), 0).toFixed(2)}
                 </div>
                 <p className="text-xs text-muted-foreground">Based on current prices</p>
               </CardContent>
@@ -461,7 +461,7 @@ useEffect(() => {
                     </CardContent>
                     <CardFooter className="flex justify-between text-sm">
                       <div className="font-semibold">
-                        ${product.pricePerKg?.toFixed(2)} / {product.unit}
+                        Rs {product.pricePerKg?.toFixed(2)} / {product.unit}
                       </div>
                       <div className="text-muted-foreground">
                         {product.availableQuantityKg} {product.unit} left
@@ -494,7 +494,7 @@ useEffect(() => {
                 <DollarSign className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
-                <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+                <div className="text-2xl font-bold">Rs{totalRevenue.toFixed(2)}</div>
                 <p className="text-xs text-muted-foreground">From completed orders</p>
               </CardContent>
             </Card>
@@ -574,7 +574,7 @@ useEffect(() => {
                             </div>
                             <div>
                               <p className="text-muted-foreground">Total Price</p>
-                              <p className="font-medium">${order.totalPrice.toFixed(2)}</p>
+                              <p className="font-medium">Rs{order.totalPrice.toFixed(2)}</p>
                             </div>
                             <div>
                               <p className="text-muted-foreground">Ordered On</p>
@@ -744,7 +744,7 @@ useEffect(() => {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="pricePerKg">Price per Unit ($)</Label>
+                    <Label htmlFor="pricePerKg">Price per Unit ('Rs')</Label>
                     <Input id="pricePerKg" name="pricePerKg" type="number" step="0.01" placeholder="e.g., 3.50" defaultValue={currentFormData?.pricePerKg} required />
                   </div>
                 </div>
