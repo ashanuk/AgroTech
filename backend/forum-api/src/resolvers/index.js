@@ -337,51 +337,25 @@ const resolvers = {
         }
 
         const searchTerm = query.trim();
+        console.log('Searching for:', searchTerm);
         
-        // Create multiple search strategies for better matching
-        const searchQueries = [];
-        
-        // 1. Exact text search (for complete words)
-        if (searchTerm.length >= 3) {
-          searchQueries.push({
-            $text: { $search: searchTerm }
-          });
-        }
-        
-        // 2. Regex search for partial matching (case-insensitive)
+        // Create a flexible regex pattern that matches anywhere in the string
         const regexPattern = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i');
-        searchQueries.push({
+        
+        // Search in title, description, and cropType fields
+        const searchQuery = {
           $or: [
             { title: { $regex: regexPattern } },
             { description: { $regex: regexPattern } },
             { cropType: { $regex: regexPattern } }
           ]
-        });
+        };
         
-        // 3. For very short queries (1-2 characters), search only title and cropType with starts-with pattern
-        if (searchTerm.length <= 2) {
-          const startsWithPattern = new RegExp(`^${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}`, 'i');
-          searchQueries.push({
-            $or: [
-              { title: { $regex: startsWithPattern } },
-              { cropType: { $regex: startsWithPattern } }
-            ]
-          });
-        }
+        console.log('Search query:', JSON.stringify(searchQuery, null, 2));
         
-        // Combine all search strategies
-        const finalQuery = searchQueries.length > 1 ? { $or: searchQueries } : searchQueries[0];
-        
-        console.log('Search query:', JSON.stringify(finalQuery, null, 2));
-        
-        const products = await Product.find(finalQuery)
+        const products = await Product.find(searchQuery)
           .populate("farmerId")
-          .sort({ 
-            // Prioritize exact title matches, then text score, then creation date
-            title: searchTerm.length <= 2 ? 1 : undefined,
-            score: searchTerm.length >= 3 ? { $meta: "textScore" } : undefined,
-            createdAt: -1 
-          })
+          .sort({ createdAt: -1 })
           .limit(limit)
           .skip(offset);
 
@@ -395,7 +369,7 @@ const resolvers = {
           }
 
           try {
-            // Format farmer data - this now always returns valid data
+            // Format farmer data
             const farmerData = formatFarmerData(product.farmerId);
 
             // Extract the product object and handle the farmerId properly

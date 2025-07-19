@@ -363,7 +363,7 @@ export default function MarketPage() {
     refetch: refetchSearch 
   } = useQuery(SEARCH_PRODUCTS, {
     variables: { query: searchQuery, limit: 20, offset: 0 },
-    skip: !searchQuery || searchQuery.length < 2
+    skip: !searchQuery || searchQuery.length < 1
   })
 
   // Reservation mutation
