@@ -22,6 +22,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { graphQLLogout } from "@/lib/graphql-auth";
 
 import { ModeToggle } from "./mode-toggle";
+import user from "@/models/user";
 
 const smartCropManagementItems = [
   {
