@@ -21,7 +21,7 @@ export default function Home() {
       <ChartLineInteractive />
       <div>
         <SessionProvider>
-          <p> Hello </p>
+          <p>  </p>
         </SessionProvider>
       </div>
     </div>
