@@ -50,6 +50,17 @@ export default function ChatPage() {
   useEffect(() => {
     if (!isClient) return; // Wait for client-side hydration
 
+    // Check for quick question from chatbot icon
+    const quickQuestion = localStorage.getItem("agrotech-quick-question");
+    if (quickQuestion) {
+      setInputValue(quickQuestion);
+      localStorage.removeItem("agrotech-quick-question");
+      // Auto-focus the input
+      setTimeout(() => {
+        inputRef.current?.focus();
+      }, 100);
+    }
+    
     // Load session ID
     const savedSessionId = localStorage.getItem("agrotech-chat-session-id");
     if (savedSessionId) {
