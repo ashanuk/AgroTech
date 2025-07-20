@@ -1,6 +1,6 @@
 "use client";
 
-import { BarChart, BookOpen, Calendar, Cog, Droplets, Home, Inbox, MessagesSquare, Search, Settings, ShoppingCart, Sprout, Truck, Users } from "lucide-react"
+import { BarChart, BookOpen, Calendar, Cog, Droplets, Home, Inbox, MessagesSquare, Search, Settings, ShoppingCart, Sprout, Truck, Users, Bot } from "lucide-react"
 import { NavUser } from "@/components/nav-user"
 import { useState } from "react"
 
@@ -33,11 +33,11 @@ const smartCropManagementItems = [
     url: "/crop-management/crop-planning",
     icon: Sprout,
   },
-  {
-    title: "Disease & Pest Detection",
-    url: "#",
-    icon: Search,
-  },
+  // {
+  //   title: "Disease & Pest Detection",
+  //   url: "#",
+  //   icon: Search,
+  // },
   {
     title: "Farming Calendar",
     url: "#",
@@ -74,11 +74,11 @@ const marketIntelligentItems = [
     url: "/market",
     icon: ShoppingCart,
   },
-  {
-    title: "Supply Chain Tracking",
-    url: "#",
-    icon: Truck,
-  },
+  // {
+  //   title: "Supply Chain Tracking",
+  //   url: "#",
+  //   icon: Truck,
+  // },
 ];
 
 const communityItems = [
@@ -96,6 +96,19 @@ const communityItems = [
     title: "Learning Center",
     url: "#",
     icon: BookOpen,
+  },
+];
+
+const GeneralItems = [
+  {
+    title: "Dashboard",
+    url: "/",
+    icon: Home,
+  },
+  {
+    title: "AI Assistant",
+    url: "/community/chat",
+    icon: Bot,
   },
 ];
 
@@ -181,6 +194,25 @@ export function AppSidebar() {
       </SidebarHeader>
 
       <SidebarContent>
+        <SidebarGroup>
+          <SidebarGroupLabel>General</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {GeneralItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <a href={item.url}>
+                      <item.icon />
+                      <span>{item.title}</span>
+                    </a>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        
         <SidebarGroup>
           <SidebarGroupLabel>Smart Crop Management</SidebarGroupLabel>
           <SidebarGroupContent>
