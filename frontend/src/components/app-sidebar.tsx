@@ -29,7 +29,7 @@ import { LogoutLoading } from "@/components/logout-loading";
 
 const smartCropManagementItems = [
   {
-    title: "Crop Planning Module",
+    title: "Crop plannig & Information",
     url: "/crop-management/crop-planning",
     icon: Sprout,
   },
