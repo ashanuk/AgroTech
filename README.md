@@ -215,7 +215,7 @@ AgroTech is a comprehensive digital platform designed to revolutionize agricultu
 1. **Navigate to forum API directory**
 
    ```bash
-   cd backend/forum-api
+   cd backend/server
    ```
 
 2. **Install dependencies**
@@ -253,7 +253,7 @@ AgroTech/
 │   │   ├── app/            # Main application code
 │   │   ├── data/           # Training data and datasets
 │   │   └── model/          # Trained ML models
-│   └── forum-api/          # Node.js forum API
+│   └── server/          # Node.js graphql API
 └── README.md
 ```
 
