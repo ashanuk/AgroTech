@@ -1,6 +1,6 @@
 import numpy as np
 import joblib
-from app.config import MODEL_PATH, SCALER_PATH
+from app.config import MODEL_PATH, SCALER_PATH, OPENWEATHER_WEATHER_API_KEY, TAVILY_API_KEY, OPENWEATHER_GEO_API_KEY
 import requests
 from app.crop_recommendation import CropRecommendationSystem
 crop_system = CropRecommendationSystem()
@@ -57,7 +57,10 @@ def search_ddgo(query):
         str: Search results from Tavily AI.
     """
     try:
-        tavily_client = TavilyClient(api_key="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")  # Replace with your actual API key
+        if not TAVILY_API_KEY:
+            raise ValueError("TAVILY_API_KEY not configured")
+        
+        tavily_client = TavilyClient(api_key=TAVILY_API_KEY)
         response = tavily_client.search(query)
         return str(response)
     except Exception as e:
@@ -70,13 +73,13 @@ def search_ddgo(query):
 
 import requests
 
-def get_weather(place, api_key = 'bf61bac6652fd67db5cf86801f0f9e36'):
+def get_weather(place, api_key=None):
     """
     Retrieve current weather information for a given location using the OpenWeatherMap API.
 
     Parameters:
         place (str): Name of the city or location (e.g., "London", "Colombo").
-       
+        api_key (str, optional): OpenWeatherMap API key. Uses environment variable if not provided.
 
     Returns:
         str: A formatted string with current weather details including description,
@@ -87,6 +90,12 @@ def get_weather(place, api_key = 'bf61bac6652fd67db5cf86801f0f9e36'):
         >>> get_weather("New York")
         "Weather in New York:\n  Description: clear sky\n  Temperature: 27°C\n  Feels like: 29°C\n  Humidity: 60%\n  Wind Speed: 4.6 m/s"
     """
+    # Use provided API key or fall back to environment variable
+    api_key = api_key or OPENWEATHER_WEATHER_API_KEY
+    
+    if not api_key:
+        return "Error: OpenWeatherMap API key not configured"
+    
     base_url = "http://api.openweathermap.org/data/2.5/weather"
     params = {
         "q": place,
@@ -117,10 +126,14 @@ def get_weather(place, api_key = 'bf61bac6652fd67db5cf86801f0f9e36'):
 import requests
 from datetime import datetime, timedelta
 
-API_KEY = '18fd856d30b48d870d2d9c7f709e6227'
+# Use environment variable instead of hardcoded API key
+API_KEY = OPENWEATHER_GEO_API_KEY
 
 def get_lat_lon(city):
     """Convert city name to latitude and longitude"""
+    if not API_KEY:
+        raise Exception("OpenWeatherMap API key not configured")
+        
     geo_url = "http://api.openweathermap.org/geo/1.0/direct"
     
     # Try different query formats

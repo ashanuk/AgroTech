@@ -1,6 +1,6 @@
 from typing import Optional, Dict
 from app.crop_recommendation import CropRecommendationSystem
-from fastapi import FastAPI, UploadFile, File,Request,HTTPException, Query
+from fastapi import FastAPI, UploadFile, File, Request, HTTPException, Query
 from app.train import initial_train_model, retrain_model
 from app.predict import predict_future_prices
 from langchain_core.messages import AIMessage, HumanMessage
@@ -9,17 +9,42 @@ from langchain.schema import BaseMessage  # optional import for clarity
 from pydantic import BaseModel
 from typing import List
 import uuid
+import os
+from dotenv import load_dotenv
+from fastapi.middleware.cors import CORSMiddleware
+import logging
 
+# Load environment variables
+load_dotenv()
 
-app = FastAPI()
+app = FastAPI(
+    title="AgroTech AI Backend",
+    description="AI-powered backend for AgroTech",
+    version="1.0.0"
+)
+
+# Enhanced CORS configuration for production
+allowed_origins = os.getenv("ALLOWED_ORIGINS", "").split(",")
+# Remove empty strings and strip whitespace
+allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+
+# If no origins specified, use a restrictive default
+if not allowed_origins:
+    allowed_origins = ["http://localhost:3000", "http://localhost:3001"]
+    logging.warning("No ALLOWED_ORIGINS specified. Using localhost defaults.")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["*"],
+)
 
 # CORS headers middleware
 @app.middleware("http")
 async def add_cors_headers(request: Request, call_next):
     response = await call_next(request)
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
-    response.headers["Access-Control-Allow-Headers"] = "*"
     return response
 
 # Handle preflight OPTIONS requests for chat endpoint

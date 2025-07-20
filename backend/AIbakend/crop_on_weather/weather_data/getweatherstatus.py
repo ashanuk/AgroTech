@@ -1,7 +1,12 @@
 import requests
 from datetime import datetime, timedelta
+import os
 
-API_KEY = '18fd856d30b48d870d2d9c7f709e6227'
+# Get API key from environment variable
+API_KEY = os.getenv('OPENWEATHER_GEO_API_KEY')
+
+if not API_KEY:
+    raise ValueError("OPENWEATHER_GEO_API_KEY environment variable is required")
 
 def get_lat_lon(city):
     geo_url = "http://api.openweathermap.org/geo/1.0/direct"

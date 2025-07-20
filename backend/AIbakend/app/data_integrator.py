@@ -10,11 +10,16 @@ import urllib.parse
 import calendar
 import time
 
+# Import config for API keys
+from app.config import OPENWEATHER_GEO_API_KEY
+
 class DataIntegrator:
     """Integrates soil, weather, and rainfall data for crop recommendation"""
     
     def __init__(self):
-        self.weather_api_key = '18fd856d30b48d870d2d9c7f709e6227'
+        if not OPENWEATHER_GEO_API_KEY:
+            raise ValueError("OPENWEATHER_GEO_API_KEY environment variable is required")
+        self.weather_api_key = OPENWEATHER_GEO_API_KEY
     
     def get_coordinates(self, location):
         """Get coordinates from location name"""
