@@ -142,6 +142,22 @@ AgroTech is a comprehensive digital platform designed to revolutionize agricultu
 - Python 3.8+
 - Git
 
+## Frontend .env template
+
+MONGODB_URI= 
+AUTH_TRUST_HOST=true
+
+## Server .env template
+
+MONGODB_URI
+PORT
+NODE_ENV
+JWT_SECRET
+FRONTEND_URL
+CLOUDINARY_CLOUD_NAME
+CLOUDINARY_API_KEY
+CLOUDINARY_API_SECRET 
+
 ### **Frontend Setup**
 
 1. **Clone the repository**
@@ -210,7 +226,7 @@ AgroTech is a comprehensive digital platform designed to revolutionize agricultu
    The backend API will be available at `http://localhost:8000`
    API documentation at `http://localhost:8000/docs`
 
-### **Forum API Setup**
+### ** GraphQL server setup**
 
 1. **Navigate to forum API directory**
 
@@ -266,9 +282,6 @@ AgroTech/
 - **📊 Data-Driven Insights**: Analytics help optimize farming operations
 - **🌍 Sustainable Agriculture**: Promotes eco-friendly farming practices
 
-## 🤝 Contributing
-
-We welcome contributions from developers, farmers, and agricultural experts! Please read our contributing guidelines and submit pull requests for improvements.
 
 ## 📄 License
 
