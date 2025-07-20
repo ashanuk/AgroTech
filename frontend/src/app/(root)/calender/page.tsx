@@ -2,10 +2,21 @@
 
 import React, { useState, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { Plus, Calendar as CalendarIcon, List, CheckCircle } from "lucide-react";
+import {
+  Plus,
+  Calendar as CalendarIcon,
+  List,
+  CheckCircle,
+} from "lucide-react";
 import TodoItem from "@/components/todo-item";
 import TodoForm from "@/components/todo-form";
 import { Todo, initialTodos, createTodo } from "@/models/todo";
@@ -26,17 +37,17 @@ export default function CalendarPage() {
 
   // Initialize todos from localStorage or use initialTodos
   useEffect(() => {
-    const storedTodos = localStorage.getItem('todos');
+    const storedTodos = localStorage.getItem("todos");
     if (storedTodos) {
       try {
         // Parse stored todos and convert date strings back to Date objects
         const parsedTodos = JSON.parse(storedTodos).map((todo: any) => ({
           ...todo,
-          date: new Date(todo.date)
+          date: new Date(todo.date),
         }));
         setTodos(parsedTodos);
       } catch (error) {
-        console.error('Error parsing todos from localStorage:', error);
+        console.error("Error parsing todos from localStorage:", error);
         setTodos(initialTodos);
       }
     } else {
@@ -46,19 +57,21 @@ export default function CalendarPage() {
 
   // Save todos to localStorage whenever they change
   useEffect(() => {
-    localStorage.setItem('todos', JSON.stringify(todos));
+    localStorage.setItem("todos", JSON.stringify(todos));
   }, [todos]);
 
   // Handle complete todo
   const handleCompleteTodo = (id: string) => {
-    setTodos(todos.map(todo => 
-      todo.id === id ? { ...todo, completed: !todo.completed } : todo
-    ));
+    setTodos(
+      todos.map((todo) =>
+        todo.id === id ? { ...todo, completed: !todo.completed } : todo
+      )
+    );
   };
 
   // Handle delete todo
   const handleDeleteTodo = (id: string) => {
-    setTodos(todos.filter(todo => todo.id !== id));
+    setTodos(todos.filter((todo) => todo.id !== id));
   };
 
   // Handle edit todo
@@ -71,9 +84,11 @@ export default function CalendarPage() {
   const handleSaveTodo = (todoData: Omit<Todo, "id" | "completed">) => {
     if (editTodo) {
       // Update existing todo
-      setTodos(todos.map(todo => 
-        todo.id === editTodo.id ? { ...todo, ...todoData } : todo
-      ));
+      setTodos(
+        todos.map((todo) =>
+          todo.id === editTodo.id ? { ...todo, ...todoData } : todo
+        )
+      );
       setEditTodo(undefined);
     } else {
       // Create new todo
@@ -88,32 +103,34 @@ export default function CalendarPage() {
   };
 
   // Filter todos for selected date
-  const todosForSelectedDate = todos.filter(todo => {
+  const todosForSelectedDate = todos.filter((todo) => {
     const todoDate = new Date(todo.date);
     return todoDate.toDateString() === selectedDate.toDateString();
   });
 
   // Filter todos for today
-  const todosForToday = todos.filter(todo => {
+  const todosForToday = todos.filter((todo) => {
     const todoDate = new Date(todo.date);
     return todoDate.toDateString() === new Date().toDateString();
   });
 
   // Filter todos that are upcoming (future dates)
-  const upcomingTodos = todos.filter(todo => {
-    const todoDate = new Date(todo.date);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    return todoDate >= today && !todo.completed;
-  }).sort((a, b) => a.date.getTime() - b.date.getTime());
+  const upcomingTodos = todos
+    .filter((todo) => {
+      const todoDate = new Date(todo.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return todoDate >= today && !todo.completed;
+    })
+    .sort((a, b) => a.date.getTime() - b.date.getTime());
 
   // Filter completed todos
-  const completedTodos = todos.filter(todo => todo.completed);
+  const completedTodos = todos.filter((todo) => todo.completed);
 
   // Get dates with todos for calendar highlighting
   const datesWithTodos = todos.reduce((acc: Date[], todo) => {
     const todoDate = new Date(todo.date);
-    if (!acc.some(date => date.toDateString() === todoDate.toDateString())) {
+    if (!acc.some((date) => date.toDateString() === todoDate.toDateString())) {
       acc.push(todoDate);
     }
     return acc;
@@ -134,7 +151,11 @@ export default function CalendarPage() {
           </Button>
         </div>
 
-        <Tabs defaultValue="calendar" value={activeTab} onValueChange={setActiveTab}>
+        <Tabs
+          defaultValue="calendar"
+          value={activeTab}
+          onValueChange={setActiveTab}
+        >
           <TabsList className="grid w-full grid-cols-3 mb-4">
             <TabsTrigger value="calendar" className="gap-2">
               <CalendarIcon size={16} /> Calendar
@@ -148,7 +169,7 @@ export default function CalendarPage() {
           </TabsList>
 
           <TabsContent value="calendar" className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="md:col-span-1 bg-background">
                 <CardHeader className="pb-2">
                   <CardTitle>Select Date</CardTitle>
@@ -160,16 +181,16 @@ export default function CalendarPage() {
                     onSelect={(date) => date && setSelectedDate(date)}
                     className="bg-background"
                     modifiers={{
-                      hasTodo: datesWithTodos
+                      hasTodo: datesWithTodos,
                     }}
                     modifiersStyles={{
-                      hasTodo: { fontWeight: "bold", color: "var(--primary)" }
+                      hasTodo: { fontWeight: "bold", color: "var(--primary)" },
                     }}
                   />
                 </CardContent>
               </Card>
 
-              <Card className="md:col-span-2">
+              <Card className="md:col-span-1">
                 <CardHeader className="pb-2">
                   <CardTitle>
                     Tasks for {format(selectedDate, "MMMM d, yyyy")}
@@ -183,10 +204,14 @@ export default function CalendarPage() {
                 <CardContent className="space-y-4">
                   {todosForSelectedDate.length === 0 ? (
                     <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-                      <CalendarIcon size={48} strokeWidth={1} className="mb-2" />
+                      <CalendarIcon
+                        size={48}
+                        strokeWidth={1}
+                        className="mb-2"
+                      />
                       <p>No tasks for this day</p>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         onClick={() => setFormOpen(true)}
                         className="mt-4 gap-2"
                       >
@@ -248,8 +273,8 @@ export default function CalendarPage() {
                   <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
                     <List size={48} strokeWidth={1} className="mb-2" />
                     <p>No upcoming tasks</p>
-                    <Button 
-                      variant="outline" 
+                    <Button
+                      variant="outline"
                       onClick={() => setFormOpen(true)}
                       className="mt-4 gap-2"
                     >
@@ -259,14 +284,16 @@ export default function CalendarPage() {
                 ) : (
                   <div className="space-y-4">
                     {/* Group todos by date */}
-                    {Array.from(new Set(upcomingTodos.map(todo => 
-                      todo.date.toDateString()
-                    ))).map(dateString => {
+                    {Array.from(
+                      new Set(
+                        upcomingTodos.map((todo) => todo.date.toDateString())
+                      )
+                    ).map((dateString) => {
                       const date = new Date(dateString);
                       const todosForDate = upcomingTodos.filter(
-                        todo => todo.date.toDateString() === dateString
+                        (todo) => todo.date.toDateString() === dateString
                       );
-                      
+
                       return (
                         <div key={dateString}>
                           <div className="flex items-center mb-2">
@@ -276,7 +303,7 @@ export default function CalendarPage() {
                             <Separator className="flex-1 ml-2" />
                           </div>
                           <div className="space-y-3 pl-0">
-                            {todosForDate.map(todo => (
+                            {todosForDate.map((todo) => (
                               <TodoItem
                                 key={todo.id}
                                 todo={todo}
