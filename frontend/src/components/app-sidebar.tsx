@@ -2,6 +2,7 @@
 
 import { BarChart, BookOpen, Calendar, Cog, Droplets, Home, Inbox, MessagesSquare, Search, Settings, ShoppingCart, Sprout, Truck, Users } from "lucide-react"
 import { NavUser } from "@/components/nav-user"
+import { useState } from "react"
 
 import {
   Sidebar,
@@ -23,6 +24,8 @@ import { graphQLLogout } from "@/lib/graphql-auth";
 
 import { ModeToggle } from "./mode-toggle";
 import user from "@/models/user";
+
+import { LogoutLoading } from "@/components/logout-loading";
 
 const smartCropManagementItems = [
   {
@@ -101,6 +104,8 @@ export function AppSidebar() {
   const { data: session, status } = useSession();
   console.log("Session Data:", session);
 
+  const [isLoggingout, setIsLoggingout] = useState(false);
+
   // const session = await auth();
   let datauser = {
     name: session?.user?.name || "",
@@ -116,6 +121,7 @@ export function AppSidebar() {
   // }
 
   const handleSignout = async () => {
+    setIsLoggingout(true)
     // Clear GraphQL tokens
     graphQLLogout();
 
@@ -158,6 +164,7 @@ export function AppSidebar() {
 
   return (
     <Sidebar>
+      <LogoutLoading isVisible={isLoggingout}/>
       <SidebarHeader>
         <SidebarMenu>
           <SidebarMenuItem>
