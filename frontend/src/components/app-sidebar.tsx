@@ -87,11 +87,11 @@ const communityItems = [
     url: "/community/forum",
     icon: Users,
   },
-  {
-    title: "Expert Consultation",
-    url: "#",
-    icon: MessagesSquare,
-  },
+  // {
+  //   title: "Expert Consultation",
+  //   url: "#",
+  //   icon: MessagesSquare,
+  // },
   {
     title: "Learning Center",
     url: "#",
