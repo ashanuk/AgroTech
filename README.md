@@ -143,12 +143,12 @@ AgroTech is a comprehensive digital platform designed to revolutionize agricultu
 - Git
 
 ## Frontend .env template
-
+```
 MONGODB_URI= 
 AUTH_TRUST_HOST=true
-
+```
 ## Server .env template
-
+```
 MONGODB_URI
 PORT
 NODE_ENV
@@ -157,7 +157,7 @@ FRONTEND_URL
 CLOUDINARY_CLOUD_NAME
 CLOUDINARY_API_KEY
 CLOUDINARY_API_SECRET 
-
+```
 ### **Frontend Setup**
 
 1. **Clone the repository**
