@@ -40,7 +40,7 @@ const smartCropManagementItems = [
   // },
   {
     title: "Farming Calendar",
-    url: "#",
+    url: "/calender",
     icon: Calendar,
   },
 ];
