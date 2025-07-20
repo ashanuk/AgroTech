@@ -206,7 +206,7 @@ class CropRecommendationSystem:
                 for idx, prob in enumerate(probabilities):
                     crop_name = self.crop_labels[idx] if idx < len(self.crop_labels) else f"Crop_{idx}"
                     
-                    if prob > 0.7:
+                    if prob > 0.2:
                         # Crops with >70% probability are "suitable crops"
                         suitable_crops.append({
                             'crop': crop_name,

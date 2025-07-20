@@ -169,10 +169,12 @@ export function AppSidebar() {
         <SidebarMenu>
           <SidebarMenuItem>
             <div className="flex items-center gap-2">
-              <div className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
+                <a href="/" className="bg-sidebar-primary text-sidebar-primary-foreground flex aspect-square size-8 items-center justify-center rounded-lg">
                 <Sprout />
-              </div>
-              <span className="text-lg font-semibold">AgroTech</span>
+                </a>
+                <a href="/" className="text-lg font-semibold">
+                AgroTech
+                </a>
             </div>
           </SidebarMenuItem>
         </SidebarMenu>
