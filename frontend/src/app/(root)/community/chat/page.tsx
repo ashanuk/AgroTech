@@ -1,12 +1,13 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Send, Bot, User, Trash2, MessageCircle, Sparkles } from "lucide-react";
+import { Send, Bot, User, Trash2, MessageCircle, Sparkles, CloudRain, Sprout, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Card, CardContent } from "@/components/ui/card";
 import ReactMarkdown from "react-markdown";
 
 interface Message {
@@ -40,6 +41,43 @@ export default function ChatPage() {
   const [sessionId, setSessionId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Check if user has started chatting (more than just the initial bot message)
+  const hasUserStartedChat = messages.length > 1;
+
+  // Capability suggestions that appear when user hasn't started chatting
+  const capabilities = [
+    {
+      title: "Weather Expert",
+      description: "Get weather forecasts and agricultural insights",
+      icon: CloudRain,
+      color: "bg-chart-1",
+      suggestion: "What's the weather forecast for farming this week?"
+    },
+    {
+      title: "Crop Expert", 
+      description: "Advice on planting, growing, and harvesting",
+      icon: Sprout,
+      color: "bg-chart-2", 
+      suggestion: "What crops should I plant this season?"
+    },
+    {
+      title: "Search Expert",
+      description: "Find agricultural information and best practices",
+      icon: Search,
+      color: "bg-chart-3",
+      suggestion: "How do I identify and treat plant diseases?"
+    }
+  ];
+
+  // Function to handle capability suggestion clicks
+  const handleCapabilitySuggestion = (suggestion: string) => {
+    setInputValue(suggestion);
+    // Auto-focus the input
+    setTimeout(() => {
+      inputRef.current?.focus();
+    }, 100);
+  };
 
   // Mark component as mounted to prevent hydration issues
   useEffect(() => {
@@ -300,6 +338,8 @@ export default function ChatPage() {
         </div>
       </div>
 
+      
+
       {/* Chat Interface - ChatGPT style */}
       <div className="flex flex-col h-[calc(100vh-10rem)]">
         {/* Error Banner */}
@@ -321,6 +361,9 @@ export default function ChatPage() {
         )}
 
         {/* Messages Area - No border, clean background */}
+        
+
+
         <div className="flex-1 overflow-hidden">
           <ScrollArea className="h-full">
             <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
@@ -385,6 +428,46 @@ export default function ChatPage() {
                 </div>
               ))}
 
+{/* Capability Cards - Show only when user hasn't started chatting */}
+      {!hasUserStartedChat && (
+        <div className="mb-6">
+          <div className="text-center mb-4">
+            <h2 className="text-lg font-semibold text-foreground mb-2">I can help you with:</h2>
+            {/* <p className="text-sm text-muted-foreground">Click on any capability to get started</p> */}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 max-w-4xl mx-auto">
+            {capabilities.map((capability, index) => (
+              <Card 
+                key={index} 
+                className="cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-1 border border-border/50 hover:border-primary/30"
+                onClick={() => handleCapabilitySuggestion(capability.suggestion)}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-lg ${capability.color}/20`}>
+                      <capability.icon className={`h-5 w-5 ${capability.color.replace('bg-', 'text-')}`} />
+                    </div>
+                    <div className="flex-1">
+                      <h3 className="font-semibold text-sm text-foreground">
+                        {capability.title}
+                      </h3>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {capability.description}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-border/50">
+                    <p className="text-xs text-muted-foreground italic">
+                      "{capability.suggestion}"
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
+
               {/* Typing indicator */}
               {isTyping && (
                 <div className="bg-muted/30 -mx-4 px-4 py-6">
@@ -446,41 +529,6 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
-
-      {/* Additional Info Cards - Similar to price prediction */}
-      {/* <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-3">AI Capabilities</h3>
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-primary"></div>
-              <span className="text-sm text-card-foreground">Crop planning and recommendations</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-chart-2"></div>
-              <span className="text-sm text-card-foreground">Disease and pest identification</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-chart-3"></div>
-              <span className="text-sm text-card-foreground">Market insights and pricing</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-chart-4"></div>
-              <span className="text-sm text-card-foreground">Sustainable farming practices</span>
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-card border border-border rounded-lg p-6">
-          <h3 className="text-lg font-semibold mb-3">How to Use</h3>
-          <div className="space-y-2">
-            <p className="text-sm text-muted-foreground">Ask specific questions about your crops, soil, or farming challenges</p>
-            <p className="text-sm text-muted-foreground">Get personalized recommendations based on your location and needs</p>
-            <p className="text-sm text-muted-foreground">Learn about best practices and modern farming techniques</p>
-            <p className="text-sm text-muted-foreground">Available 24/7 for instant agricultural support</p>
-          </div>
-        </div>
-      </div> */}
     </div>
   );
 }
