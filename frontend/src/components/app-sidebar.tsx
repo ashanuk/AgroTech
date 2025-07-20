@@ -103,9 +103,9 @@ export function AppSidebar() {
 
   // const session = await auth();
   let datauser = {
-    name: session?.user?.name || "abc",
-    email: session?.user?.email || "abc",
-    avatar: session?.user?.image || "abc",
+    name: session?.user?.name || "",
+    email: session?.user?.email || "",
+    avatar: session?.user?.image || "",
   };
   // if (session) {
   //   datauser = {
