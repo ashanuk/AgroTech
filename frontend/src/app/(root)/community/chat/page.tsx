@@ -440,7 +440,7 @@ export default function ChatPage() {
               <Card 
                 key={index} 
                 className="cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-1 border border-border/50 hover:border-primary/30"
-                onClick={() => handleCapabilitySuggestion(capability.suggestion)}
+                // onClick={() => handleCapabilitySuggestion(capability.suggestion)}
               >
                 <CardContent className="p-4">
                   <div className="flex items-center gap-3">

@@ -224,7 +224,7 @@ export default function DashboardPage() {
             <CardHeader>
               <CardTitle>Yield Overview</CardTitle>
               <CardDescription>Your farm's yield over the last 6 months.</CardDescription>
-            </CardHeader>
+            </CardHeader> 
             <CardContent>
               <ChartContainer config={chartConfig} className="h-[250px] w-full">
                 <AreaChart data={chartData}>
@@ -258,7 +258,7 @@ export default function DashboardPage() {
                 </div>
               </CardHeader>
               <CardContent>
-                <h3 className="font-semibold">Crop Planning</h3>
+                <h3 className="font-semibold">Crop Planning & Information</h3>
                 <p className="text-sm text-muted-foreground mt-1">Get AI-powered crop recommendations.</p>
                 <Link href="/crop-management/crop-planning">
                   <Button variant="link" className="p-0 mt-2 cursor-pointer">
