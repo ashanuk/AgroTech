@@ -101,8 +101,9 @@ export default function PricePredictionPage() {
     const fetchPredictionData = async () => {
       try {
         setLoading(true)
-        const response = await fetch('http://localhost:8000/predict')
-        
+        const response = await fetch('https://agrotech-idut.onrender.com/predict')
+        // const response = await fetch('http://localhost:8000/predict')
+
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }

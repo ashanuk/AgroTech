@@ -18,7 +18,8 @@ interface Message {
 }
 
 // API configuration
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "https://agrotech-idut.onrender.com";
+// const API_BASE_URL = "http://localhost:8000";
 
 // Create a fixed timestamp to avoid hydration mismatch
 const INITIAL_TIMESTAMP = new Date("2025-01-01T00:00:00.000Z");
@@ -439,7 +440,7 @@ export default function ChatPage() {
             {capabilities.map((capability, index) => (
               <Card 
                 key={index} 
-                className="cursor-pointer hover:shadow-md transition-all duration-200 hover:-translate-y-1 border border-border/50 hover:border-primary/30"
+                className="hover:shadow-md transition-all duration-200 border border-border/50 hover:border-primary/30"
                 // onClick={() => handleCapabilitySuggestion(capability.suggestion)}
               >
                 <CardContent className="p-4">

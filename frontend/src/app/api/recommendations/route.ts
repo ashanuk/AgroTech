@@ -7,7 +7,8 @@ export async function POST(request: NextRequest) {
     console.log('🔄 Proxying recommendation request:', body)
     
     // Forward the request to your ML API
-    const response = await fetch('http://localhost:8000/crop-recommendation/suitable-crops', {
+    // url: https://agrotech-idut.onrender.com
+    const response = await fetch('https://agrotech-idut.onrender.com/crop-recommendation/suitable-crops', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
