@@ -8,7 +8,7 @@ import os
 # Try to load environment variables from .env file
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(dotenv_path='./backend/AIbakend/app/.env')
 except ImportError:
     print("python-dotenv not installed. Install with: pip install python-dotenv")
 
