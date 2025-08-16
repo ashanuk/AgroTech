@@ -8,7 +8,7 @@ tensorflow==2.16.1
 joblib==1.4.2
 python-multipart==0.0.9
 python-dotenv==1.0.0
-langgraph-supervisor==0.1.17
+langgraph-supervisor==0.0.29
 langchain_google_genai==0.0.9
 langchain_core==0.2.0
 duckduckgo-search==4.5.0
