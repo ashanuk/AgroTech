@@ -256,7 +256,7 @@ export default function ThreadPage() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('http://localhost:4001/upload', {
+      const response = await fetch('https://agrotech-1-tbst.onrender.com/upload', {
         method: 'POST',
         body: formData,
       });

@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
     console.log('🔄 Proxying recommendation request:', body)
     
     // Forward the request to your ML API
-    const response = await fetch('http://localhost:8000/crop-recommendation/suitable-crops', {
+    const response = await fetch('https://agrotech-idut.onrender.com/crop-recommendation/suitable-crops', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -80,7 +80,7 @@ export async function POST(request: NextRequest) {
             success: false,
             status: 'error',
             error: 'ML API server is not available',
-            message: 'Please make sure the ML API server is running on http://localhost:8000'
+            message: 'Please make sure the ML API server is running on https://agrotech-idut.onrender.com'
           },
           { status: 503 }
         )

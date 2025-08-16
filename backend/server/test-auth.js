@@ -2,7 +2,7 @@
 
 const axios = require("axios");
 
-const BACKEND_URL = "http://localhost:4001/graphql";
+const BACKEND_URL = "https://agrotech-1-tbst.onrender.com/graphql";
 
 const testAuth = async () => {
   console.log("Testing AgroTech Authentication System...\n");

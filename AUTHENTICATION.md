@@ -95,7 +95,7 @@ Frontend (Next.js)           Backend (GraphQL/Node.js)
 ### Frontend Environment Variables
 
 ```bash
-NEXT_PUBLIC_GRAPHQL_ENDPOINT=http://localhost:4001/graphql
+NEXT_PUBLIC_GRAPHQL_ENDPOINT=https://agrotech-1-tbst.onrender.com/graphql
 NEXTAUTH_URL=http://localhost:3000
 NEXTAUTH_SECRET=your-nextauth-secret
 MONGODB_URI=mongodb://localhost:27017/agrotech

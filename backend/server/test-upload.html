@@ -40,7 +40,7 @@
             formData.append('0', file);
             
             try {
-                const response = await fetch('http://localhost:4001/graphql', {
+                const response = await fetch('https://agrotech-1-tbst.onrender.com/graphql', {
                     method: 'POST',
                     body: formData
                 });

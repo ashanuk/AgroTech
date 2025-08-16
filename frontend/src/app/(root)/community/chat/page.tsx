@@ -18,7 +18,7 @@ interface Message {
 }
 
 // API configuration
-const API_BASE_URL = "http://127.0.0.1:8000";
+const API_BASE_URL = "https://agrotech-idut.onrender.com";
 
 // Create a fixed timestamp to avoid hydration mismatch
 const INITIAL_TIMESTAMP = new Date("2025-01-01T00:00:00.000Z");

@@ -15,7 +15,7 @@ async function testUpload() {
 
     const fetch = (await import('node-fetch')).default;
 
-    const response = await fetch('http://localhost:4001/upload', {
+    const response = await fetch('https://agrotech-1-tbst.onrender.com/upload', {
       method: 'POST',
       body: formData
     });

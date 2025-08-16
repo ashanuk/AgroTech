@@ -9,7 +9,7 @@ import { onError } from "@apollo/client/link/error";
 
 const httpLink = createHttpLink({
   uri:
-    process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || "http://localhost:4001/graphql",
+    process.env.NEXT_PUBLIC_GRAPHQL_ENDPOINT || "https://agrotech-1-tbst.onrender.com/graphql",
 });
 
 const authLink = setContext(async (_, { headers }) => {
