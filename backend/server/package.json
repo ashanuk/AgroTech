@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
+    "prod": "NODE_ENV=production node src/production.js",
+    "start:prod": "node src/production.js",
     "seed": "node src/scripts/seed.js"
   },
   "dependencies": {

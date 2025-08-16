@@ -1,0 +1,24 @@
+services:
+  - type: web
+    name: agrotech-forum-api
+    runtime: node
+    plan: free
+    buildCommand: chmod +x build.sh && ./build.sh
+    startCommand: npm run start:prod
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false # Set this in the Render dashboard
+      - key: JWT_SECRET
+        sync: false # Set this in the Render dashboard
+      - key: CORS_ORIGIN
+        value: "*" # Update this with your frontend URL
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false # Set this in the Render dashboard
+      - key: CLOUDINARY_API_KEY
+        sync: false # Set this in the Render dashboard
+      - key: CLOUDINARY_API_SECRET
+        sync: false # Set this in the Render dashboard
