@@ -163,7 +163,7 @@ CLOUDINARY_API_SECRET
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/yourusername/AgroTech.git
+   git clone https://github.com/ashanuk/AgroTech.git
    cd AgroTech
    ```
 
