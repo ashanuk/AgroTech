@@ -11,14 +11,14 @@ from app.config import MODEL_PATH, SCALER_PATH, DATA_PATH, LOOKBACK
 
 def predict_future_prices(n_days=60, item_code=0, type_code=0, place_code=0):
     # Load model and recompile with explicit loss
-    model = load_model(MODEL_PATH, compile=False)
+    model = load_model(f"{MODEL_PATH}rice_model.h5", compile=False)
     model.compile(optimizer='adam', loss=MeanSquaredError())
 
     # Load scaler
     scaler = joblib.load(SCALER_PATH)
 
     # Load and preprocess dataset
-    df = pd.read_csv(DATA_PATH)
+    df = pd.read_csv(f"{DATA_PATH}rice_cleaned.csv")
     df['Date'] = pd.to_datetime(df['Date'])
 
     # Encode categorical features
