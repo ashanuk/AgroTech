@@ -78,18 +78,18 @@ export default function CropPlanningPage() {
       console.log('🔄 Starting to fetch crops...')
       const response = await fetch('/api/crop') // Change from '/api/crop' to '/api/crops'
       
-      console.log('📡 Response status:', response.status)
+      // console.log('📡 Response status:', response.status)
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`)
       }
       
       const data = await response.json()
-      console.log('📊 Raw API Response:', data)
+      // console.log('📊 Raw API Response:', data)
       
       // Check for 'status' instead of 'success'
       if (data.status === 'success' && Array.isArray(data.data)) {
-        console.log('✅ Setting crops:', data.data.length, 'items')
+        // console.log('✅ Setting crops:', data.data.length, 'items')
         
         // Helper function to get random crops (client-side only)
         const getRandomCrops = (cropsArray: ICrop[], count: number = 10): ICrop[] => {
@@ -102,14 +102,14 @@ export default function CropPlanningPage() {
         }
         
         const randomCrops = getRandomCrops(data.data, 10)
-        console.log('🎲 Selected random crops:', randomCrops.length, 'items')
+        // console.log('🎲 Selected random crops:', randomCrops.length, 'items')
         
         setCrops(randomCrops) // Set random 10 crops for display
         setAllCrops(data.data) // Store all crops for search functionality
         
         // Log first crop for structure inspection
         if (randomCrops.length > 0) {
-          console.log('📋 Sample crop structure:', randomCrops[0])
+          // console.log('📋 Sample crop structure:', randomCrops[0])
         }
       } else {
         console.error('❌ API Response structure issue:', {
@@ -147,7 +147,7 @@ export default function CropPlanningPage() {
 
     try {
       // Step 1: Get crop recommendations from ML API via proxy
-      console.log('🔍 Getting recommendations for:', location)
+      // console.log('🔍 Getting recommendations for:', location)
       
       const recommendationResponse = await fetch('/api/recommendations', {
         method: 'POST',
@@ -165,7 +165,7 @@ export default function CropPlanningPage() {
       }
 
       const recommendationData = await recommendationResponse.json()
-      console.log('📋 Recommended crops from ML API:', recommendationData)
+      // console.log('📋 Recommended crops from ML API:', recommendationData)
 
       // Handle the actual ML API response format
       let cropNames: string[] = []
@@ -173,15 +173,15 @@ export default function CropPlanningPage() {
       if (Array.isArray(recommendationData)) {
         // If it's an array of objects with 'crop' field
         cropNames = recommendationData.map((item: any) => item.crop).filter(Boolean)
-        console.log('🎯 Extracted crop names from array:', cropNames)
+        // console.log('🎯 Extracted crop names from array:', cropNames)
       } else if (recommendationData.success && recommendationData.recommended_crops) {
         // If it's the expected format
         cropNames = recommendationData.recommended_crops
-        console.log('🎯 Crop names from success response:', cropNames)
+        // console.log('🎯 Crop names from success response:', cropNames)
       } else if (recommendationData.crop) {
         // If it's a single crop recommendation
         cropNames = [recommendationData.crop]
-        console.log('🎯 Single crop recommendation:', cropNames)
+        // console.log('🎯 Single crop recommendation:', cropNames)
       } else {
         console.error('❌ Unexpected ML API response format:', recommendationData)
         throw new Error('No valid crop recommendations received from ML API')
@@ -191,7 +191,7 @@ export default function CropPlanningPage() {
         throw new Error('No crop recommendations found in ML API response')
       }
 
-      console.log('🎯 Final crop names to search for:', cropNames)
+      // console.log('🎯 Final crop names to search for:', cropNames)
 
       // Step 2: Get crop details from database using the new API endpoint
       console.log('📊 Fetching crop details from database...')
@@ -208,20 +208,20 @@ export default function CropPlanningPage() {
       }
 
       const detailsData = await detailsResponse.json()
-      console.log('✅ Crop details response:', detailsData)
-      console.log('📊 Found crop details:', detailsData.data?.length || 0)
+      // console.log('✅ Crop details response:', detailsData)
+      // console.log('📊 Found crop details:', detailsData.data?.length || 0)
 
       // Handle the response format from your existing API
       if (detailsData.status === 'success' && detailsData.data && detailsData.data.length > 0) {
-        console.log('✅ Setting recommended crops:', detailsData.data.length)
+        // console.log('✅ Setting recommended crops:', detailsData.data.length)
         setCrops(detailsData.data)
         setSearchPerformed(true)
         setSearchQuery("") // Clear search when getting recommendations
         setError(null) // Clear any previous errors
       } else {
         console.warn('⚠️ No matching crops found in database')
-        console.log('🔍 Requested crops:', cropNames)
-        console.log('📋 Database response:', detailsData)
+        // console.log('🔍 Requested crops:', cropNames)
+        // console.log('📋 Database response:', detailsData)
         
         // Show a more helpful error message
         setError(`Found recommendations but couldn't match them in our database. Recommended crops: ${cropNames.join(', ')}`)
@@ -244,8 +244,8 @@ export default function CropPlanningPage() {
   }
 
   const handleSearch = (query: string) => {
-    console.log('🔍 Search called with query:', query)
-    console.log('📊 allCrops length:', allCrops.length)
+    // console.log('🔍 Search called with query:', query)
+    // console.log('📊 allCrops length:', allCrops.length)
     
     setSearchQuery(query)
     setIsSearching(query.length > 0)
@@ -270,8 +270,8 @@ export default function CropPlanningPage() {
       return nameMatch || scientificNameMatch || descriptionMatch || typeMatch
     })
     
-    console.log('🎯 Search results:', searchResults.length, 'crops found')
-    console.log('📋 Found crops:', searchResults.map(c => c.name))
+    // console.log('🎯 Search results:', searchResults.length, 'crops found')
+    // console.log('📋 Found crops:', searchResults.map(c => c.name))
     
     // Set the filtered results to crops state
     setCrops(searchResults)

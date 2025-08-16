@@ -115,7 +115,7 @@ const GeneralItems = [
 export function AppSidebar() {
   const router = useRouter();
   const { data: session, status } = useSession();
-  console.log("Session Data:", session);
+  // console.log("Session Data:", session);
 
   const [isLoggingout, setIsLoggingout] = useState(false);
 

@@ -138,13 +138,13 @@ const fetchMarketData = async (market?: string, date?: string): Promise<RealMark
     if (date) params.append('date', date)
     
     const url = `/api/market?${params.toString()}`
-    console.log('🔗 Fetching from URL:', url)
+    // console.log('🔗 Fetching from URL:', url)
     
     const response = await fetch(url)
     console.log('📡 Response status:', response.status)
     
     const data = await response.json()
-    console.log('📄 Response data:', data)
+    // console.log('📄 Response data:', data)
     
     if (data.success) {
       return data.data
@@ -168,7 +168,7 @@ const fetchMarketSummary = async (): Promise<MarketSummary | null> => {
     
     console.log('📊 Summary response status:', response.status)
     const data = await response.json()
-    console.log('📊 Summary response data:', data)
+    // console.log('📊 Summary response data:', data)
     
     if (data.success) {
       return data.summary
@@ -227,7 +227,7 @@ export default function MarketPage() {
   // Reservation mutation
   const [createReservation] = useMutation(CREATE_RESERVATION_MUTATION, {
     onCompleted: (data) => {
-      console.log('Reservation created:', data.createReservation)
+      // console.log('Reservation created:', data.createReservation)
       setIsReservationSheetOpen(false)
       setReservationQuantity(1)
       setSelectedProduct(null)
@@ -286,8 +286,8 @@ export default function MarketPage() {
           fetchMarketSummary()
         ])
         
-        console.log('✅ Market data received:', marketData)
-        console.log('📊 Market summary received:', summary)
+        // console.log('✅ Market data received:', marketData)
+        // console.log('📊 Market summary received:', summary)
         
         setRealMarketData(marketData)
         setMarketSummary(summary)

@@ -120,7 +120,7 @@ export default function PricePredictionPage() {
             setAveragePrice(prices.reduce((sum, price) => sum + price, 0) / prices.length)
           }
         } else {
-          console.error('Invalid data structure:', responseData)
+          // console.error('Invalid data structure:', responseData)
           setError('Received invalid data format from API')
         }
       } catch (err) {

@@ -9,8 +9,8 @@ export async function GET(request: NextRequest) {
     
     // Fetch market data from MongoDB
     const markets = await Market.find({}).sort({ date: -1 }).limit(50)
-    console.log(`📊 Found ${markets.length} market records`)
-    console.log('📅 Latest market dataaaaa:', markets)
+    // console.log(`📊 Found ${markets.length} market records`)
+    // console.log('📅 Latest market dataaaaa:', markets)
     
     // Debug: Log the raw market data structure
     if (markets.length > 0) {
@@ -33,11 +33,11 @@ export async function GET(request: NextRequest) {
     // Transform data for API response based on your database structure
     const transformedData = markets.map(market => {
       const marketObj = market.toObject() // Convert to plain object first
-      console.log('🔍 Market data:', { 
-        id: market._id, 
-        market: marketObj.market, // Use toObject() version
-        rawMarket: marketObj 
-      })
+      // console.log('🔍 Market data:', { 
+      //   id: market._id, 
+      //   market: marketObj.market, // Use toObject() version
+      //   rawMarket: marketObj 
+      // })
       
       return {
         id: market._id?.toString() || market.id,
